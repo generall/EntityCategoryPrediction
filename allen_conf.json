@@ -20,7 +20,8 @@
           "type": "fasttext-embedder",
           "model_path": "./data/gensim_fake_ft.model",
           "model_params_path": "./data/gensim_fake_ft.model.params",
-          "trainable": true
+          "trainable": true,
+          "force_cpu": false
         }
       }
     }

@@ -42,7 +42,7 @@ class FastTextEmbeddingBag(EmbeddingBag):
                 # Assume weights will be loaded later
                 self.load_saved_params(self.model_params_path)
             else:
-                raise RuntimeError("Nither model file no param file found")
+                raise RuntimeError("Neither model file no param file found")
 
         super().__init__(self.num_vectors, self.dimension)
 
@@ -120,7 +120,23 @@ class FastTextEmbeddingBag(EmbeddingBag):
                               missing_keys, unexpected_keys, error_msgs):
         strict = self.learn_emb  # restore weights only in case they are trainable
         return super(FastTextEmbeddingBag, self)._load_from_state_dict(state_dict, prefix, local_metadata, strict,
-                              missing_keys, unexpected_keys, error_msgs)
+                                                                       missing_keys, unexpected_keys, error_msgs)
+
+
+class GensimFasttext:
+    def __init__(
+            self,
+            model_path: str
+    ):
+        self.model = FastText.load(model_path)
+
+    def __call__(self, words):
+        vectors = np.stack([self.model.wv.get_vector(word) for word in words]).astype(np.float32)
+        return torch.from_numpy(vectors)
+
+    @property
+    def dimension(self):
+        return self.model.wv.vector_size
 
 
 @TokenEmbedder.register("fasttext-embedder")
@@ -132,21 +148,29 @@ class FasttextTokenEmbedder(TokenEmbedder):
             model_path: str,
             model_params_path: str,
             trainable: bool = False,
-            vocab_namespace: str = "tokens"
+            vocab_namespace: str = "tokens",
+            force_cpu: bool = False
     ):
         super(FasttextTokenEmbedder, self).__init__()
         self.vocab_namespace = vocab_namespace
         self.vocab = vocab
-        self.embedding = FastTextEmbeddingBag(
-            model_path=model_path,
-            model_params_path=model_params_path,
-            trainable=trainable
-        )
+
+        if force_cpu:
+            assert not trainable, "Can't train weight with force_cpu mode"
+            self.embedding = GensimFasttext(model_path=model_path)
+        else:
+            self.embedding = FastTextEmbeddingBag(
+                model_path=model_path,
+                model_params_path=model_params_path,
+                trainable=trainable
+            )
 
     def get_output_dim(self) -> int:
         return self.embedding.dimension
 
-    def forward(self, inputs):
+    def forward(self, inputs: torch.Tensor):
+        original_device = inputs.device
+
         original_size = inputs.size()
         inputs = inputs.view(-1)
 
@@ -157,4 +181,8 @@ class FasttextTokenEmbedder(TokenEmbedder):
 
         view_args = list(original_size) + [embedded.size(-1)]
         embedded = embedded.view(*view_args)
+
+        if embedded.device != original_device:
+            embedded.to(original_device)
+
         return embedded
