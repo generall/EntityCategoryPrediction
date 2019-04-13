@@ -22,6 +22,16 @@ pip install -r requirements.txt
 
 # Run
 
+
+## Train
+
 ```bash
 allennlp train -f -s data/stats allen_conf.json --include-package category_prediction
 ```
+
+## Validate
+
+```bash
+allennlp evaluate ./data/stats/model.tar.gz ./data/fake_data_test.tsv --include-package category_prediction
+```
+

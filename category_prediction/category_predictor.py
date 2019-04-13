@@ -3,10 +3,16 @@ from typing import Dict
 import torch
 from allennlp.data import Vocabulary
 from allennlp.models import Model
-from allennlp.modules import TextFieldEmbedder
+from allennlp.modules import TextFieldEmbedder, Seq2SeqEncoder
 from allennlp.nn.util import get_mask_from_sequence_lengths, get_text_field_mask, get_lengths_from_binary_sequence_mask, \
-    sort_batch_by_length
+    sort_batch_by_length, get_final_encoder_states
 from torch.nn import Linear
+
+from allennlp.training.metrics import Auc, Metric
+
+from category_prediction.metrics.multilabel_f1 import MultiLabelF1Measure
+from category_prediction.metrics.multilabel_auc import MultilabelAuc
+from category_prediction.seq_combiner import SeqCombiner
 
 
 @Model.register("category_predictor")
@@ -16,38 +22,76 @@ class CategoryPredictor(Model):
             self,
             vocab: Vocabulary,
             text_embedder: TextFieldEmbedder,
+            encoder: Seq2SeqEncoder,
+            seq_combiner: SeqCombiner
     ):
         super(CategoryPredictor, self).__init__(vocab)
 
         self.text_embedder = text_embedder
+        self.encoder = encoder
+        self.seq_combiner = seq_combiner
 
-        self._output_projection_layer = Linear(self.text_embedder.get_output_dim(), vocab.get_vocab_size("labels"))
+        self._output_projection_layer = Linear(self.seq_combiner.get_output_dim(), vocab.get_vocab_size("labels"))
 
         self.loss = torch.nn.BCEWithLogitsLoss()
 
-    def forward(self, sentences, categories) -> Dict[str, torch.Tensor]:
-        # [batch size * sentence count * sentence length]
+        self.metrics: Dict[str, Metric] = {
+            # 'auc': Auc(),
+            "m-auc": MultilabelAuc(vocab.get_vocab_size("labels")),
+            'f1': MultiLabelF1Measure()
+        }
+
+    def forward(
+            self,
+            sentences: torch.LongTensor,
+            categories: torch.LongTensor = None
+    ) -> Dict[str, torch.Tensor]:
+        """
+
+        :param sentences: Tensor of word indexes [batch_size * sample_size * ]
+        :param categories:
+        :return:
+        """
+        # shape: (batch_size * sample_size * sentence length)
         mask = get_text_field_mask(sentences, num_wrapping_dims=1)
 
         batch_size, sample_size, seq_length = mask.shape
 
         flat_mask = mask.view(batch_size * sample_size, seq_length)
 
-        lengths = get_lengths_from_binary_sequence_mask(flat_mask)
+        # lengths = get_lengths_from_binary_sequence_mask(flat_mask)
+        # sorted_mask, sorted_lengths, restoration_indices, permutation_index = sort_batch_by_length(flat_mask, lengths)
 
-        sorted_mask, sorted_lengths, restoration_indices, permutation_index = sort_batch_by_length(flat_mask, lengths)
+        # shape: (batch * sentence_length * embedding)
+        embedded = self.text_embedder(sentences).view(batch_size * sample_size, seq_length, -1)
 
-        # [batch x sent.length x embedding]
-        embedded = self.text_embedder(sentences).view(batch_size * sample_size, seq_length, -1)[permutation_index]
+        # shape: (batch * sentence_length * encoder_dim)
+        encoder_outputs = self.encoder(embedded, flat_mask)
 
-        sentences_embedding = embedded.sum(dim=1)[restoration_indices]
+        # shape: (batch_size, encoder_output_dim)
+        final_encoder_output = get_final_encoder_states(
+            encoder_outputs,
+            flat_mask,
+            self.encoder.is_bidirectional()
+        )
 
-        sentences_embedding = sentences_embedding.view(batch_size, sample_size, -1)
+        sentences_embedding = final_encoder_output.view(batch_size, sample_size, -1)
 
-        sentences_embedding_max, _ = sentences_embedding.max(dim=1)
+        mentions_embeddings = self.seq_combiner(encoder_outputs, sentences_embedding)
 
-        outputs = self._output_projection_layer(sentences_embedding_max)
+        outputs = self._output_projection_layer(mentions_embeddings)
 
-        return {
-            'loss': self.loss(outputs, categories.float())
+        result = {
+            'predictions': torch.sigmoid(outputs)
         }
+
+        if categories is not None:
+            result['loss'] = self.loss(outputs, categories.float())
+            # self.metrics['auc'](outputs.view(-1), categories.view(-1))
+            self.metrics['m-auc'](outputs, categories)
+            self.metrics['f1']((outputs > 0.5).long(), categories)
+
+        return result
+
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+        return dict((key, metric.get_metric(reset)) for key, metric in self.metrics.items())
