@@ -48,11 +48,11 @@ class CategoryPredictor(Model):
     ) -> Dict[str, torch.Tensor]:
         """
 
-        :param sentences: Tensor of word indexes [batch_size * sample_size * ]
+        :param sentences: Tensor of word indexes [batch_size * sample_size * seq_length]
         :param categories:
         :return:
         """
-        # shape: (batch_size * sample_size * sentence length)
+        # shape: (batch_size * sample_size * seq_length)
         mask = get_text_field_mask(sentences, num_wrapping_dims=1)
 
         batch_size, sample_size, seq_length = mask.shape
@@ -62,20 +62,24 @@ class CategoryPredictor(Model):
         # lengths = get_lengths_from_binary_sequence_mask(flat_mask)
         # sorted_mask, sorted_lengths, restoration_indices, permutation_index = sort_batch_by_length(flat_mask, lengths)
 
-        # shape: (batch * sentence_length * embedding)
+        # shape: ((batch_size * sample_size) * seq_length * embedding)
         embedded = self.text_embedder(sentences).view(batch_size * sample_size, seq_length, -1)
 
-        # shape: (batch * sentence_length * encoder_dim)
+        # shape: ((batch_size * sample_size) * seq_length * encoder_dim)
         encoder_outputs = self.encoder(embedded, flat_mask)
 
-        # shape: (batch_size, encoder_output_dim)
+        # shape: ((batch_size * sample_size), encoder_output_dim)
         final_encoder_output = get_final_encoder_states(
             encoder_outputs,
             flat_mask,
             self.encoder.is_bidirectional()
         )
 
+        # shape: (batch_size * sample_size * encoder_output_dim)
         sentences_embedding = final_encoder_output.view(batch_size, sample_size, -1)
+
+        # shape: (batch_size, sample_size, seq_length, encoder_dim)
+        encoder_outputs = encoder_outputs.view(batch_size, sample_size, seq_length, -1)
 
         mentions_embeddings = self.seq_combiner(encoder_outputs, sentences_embedding)
 
