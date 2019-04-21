@@ -16,9 +16,9 @@ class MenionsLoader(DatasetReader):
 
         with open(file_path) as fd:
             for line in fd:
-                categoty_tag, left_sent, mention, right_sent = line.strip(' ').split('\t')
+                category_tag, left_sent, mention, right_sent = line.strip(' ').split('\t')
                 sent = f"{left_sent.strip()} {self.left_tag} {mention.strip()} {self.right_tag} {right_sent.strip()}"
-                yield sent, categoty_tag
+                yield sent, category_tag
 
     def _read(self, file_path: str) -> Iterable[Instance]:
         for category_tag, sentences in groupby(self._read_lines(file_path), key=lambda x: x[1]):
@@ -60,3 +60,21 @@ class MenionsLoader(DatasetReader):
         self.token_indexers = token_indexers
         self.sentence_sample = sentence_sample
 
+
+@DatasetReader.register("vocab_mention_categories")
+class VocabMentionsLoader(MenionsLoader):
+
+    def _read(self, file_path: str) -> Iterable[Instance]:
+        for sent, category_tag in self._read_lines(file_path):
+            yield self.text_to_instance(sent, category_tag)
+
+    def text_to_instance(self, sentence: str, category_tag: str) -> Instance:
+        categories = self.category_mapping.get(category_tag)
+
+        tokenized_sentence = self.tokenizer.tokenize(sentence)
+        sent_field = TextField(tokenized_sentence, self.token_indexers)
+
+        return Instance({
+            'sentences': sent_field,
+            'categories': MultiLabelField(categories)
+        })

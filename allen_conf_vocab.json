@@ -1,0 +1,83 @@
+{
+  "dataset_reader": {
+    "type": "vocab_mention_categories",
+    "category_mapping_file": "./data/category_mapping.json",
+    "tokenizer": {
+      "type": "word"
+    },
+    "token_indexers": {
+      "tokens": "single_id",
+      "tokens2": "single_id"
+    }
+  },
+  "train_data_path": "./data/train_data.tsv",
+  "validation_data_path": "./data/valid_data.tsv",
+  "evaluate_on_test": true,
+  "model": {
+    "type": "category_predictor",
+    "text_embedder": {
+      "type": "basic",
+      "token_embedders": {
+        "tokens": {
+          "type": "fasttext-embedder",
+          "model_path": "./data/fasttext_embedding.bin",
+          "model_params_path": "./data/fasttext_embedding.params",
+          "trainable": false,
+          "force_cpu": false
+        },
+        "tokens2": {
+          "type": "embedding",
+          "embedding_dim": 10,
+          "trainable": true
+        }
+      }
+    },
+    "encoder": {
+      "type": "lstm",
+      "input_size": 310,
+      "hidden_size": 50,
+      "num_layers": 1,
+      "dropout": 0.5,
+      "bidirectional": true
+    },
+    "seq_combiner": {
+      "type": "attention-combiner",
+      "num_layers": 2,
+      "input_state_dim": 100,
+      "encoded_seq_dim": 100,
+      "output_dim": 50,
+      "dropout": 0.2,
+      "attention": {
+        "type": "linear",
+        "tensor_1_dim": 100,
+        "tensor_2_dim": 100
+      }
+    }
+  },
+  "iterator": {
+    "type": "basic",
+    "batch_size": 32
+  },
+  "trainer": {
+    "optimizer": {
+      "type": "adam",
+      "lr": 0.01
+    },
+    "should_log_learning_rate": true,
+    "num_epochs": 5,
+    "model_save_interval": 1,
+    "learning_rate_scheduler": {
+      "type": "reduce_on_plateau",
+      "factor": 0.5,
+      "patience": 5,
+      "verbose": true
+    }
+  },
+  "vocabulary": {
+    "directory_path": null,
+    "min_count": {
+      "tokens":  3
+    },
+    "max_vocab_size": 200000
+  }
+}
