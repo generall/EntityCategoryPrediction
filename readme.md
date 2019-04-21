@@ -30,6 +30,12 @@ Filtered [OneShotWikilinks](https://www.kaggle.com/generall/oneshotwikilinks) da
     * Produces: `people_mentions.tsv`
 
 
+Prepare splitted data with:
+
+```bash
+!split -n l/10 --verbose ../data/fake_data_train.tsv ../data/fake_data_train.tsv_
+```
+
 # Install
 
 ```bash

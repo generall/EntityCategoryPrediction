@@ -1,12 +1,83 @@
+import glob
 import json
+import logging
 import random
 from itertools import groupby
+from multiprocessing import Manager, Queue, Process, get_logger
 from typing import Dict, Iterable, List
 
 from allennlp.common.util import pad_sequence_to_length
 from allennlp.data import DatasetReader, TokenIndexer, Tokenizer, Instance, TokenType, Token, Vocabulary, DataIterator
 from allennlp.data.dataset import Batch
 from allennlp.data.fields import TextField, ListField, MultiLabelField
+
+logger = get_logger()  # pylint: disable=invalid-name
+logger.setLevel(logging.INFO)
+
+
+@DatasetReader.register("parallel_reader")
+class ParallelLoader(DatasetReader):
+
+    def _file_reader(self, output: Queue, file_path: str):
+        items = 0
+        for instance in self.reader._read(file_path):
+            items += 1
+            output.put(instance)
+
+        output.put(items)
+
+    def _read(self, file_path: str) -> Iterable[Instance]:
+        """
+        Assume file_path is actually prefix for real data files
+
+        :param file_path:
+        :return:
+        """
+        files = glob.glob(file_path)
+        if len(files) == 1:
+            yield from self.reader._read(files[0])
+        else:
+            manager = Manager()
+            output_queue = manager.Queue(self.output_queue_size)
+
+            for file in files:
+                args = (output_queue, file)
+                process = Process(target=self._file_reader, args=args)
+                if len(self.running_processes) < self.parallel:
+                    process.start()
+                    self.running_processes.append(process)
+                else:
+                    self.waiting_processes.append(process)
+
+            num_finished = 0
+            while num_finished < len(files):
+                item = output_queue.get()
+                if isinstance(item, int):
+                    num_finished += 1
+                    logger.info(f"worker {item} finished ({num_finished} / {len(files)})")
+
+                    if len(self.waiting_processes) > 0:
+                        process = self.waiting_processes.pop()
+                        process.start()
+                        self.running_processes.append(process)
+                else:
+                    yield item
+
+            for process in self.running_processes:
+                process.join()
+            self.running_processes.clear()
+
+    def text_to_instance(self, *inputs) -> Instance:
+        return self.reader.text_to_instance(*inputs)
+
+    def __init__(self, reader: DatasetReader, parallel: int = 1, output_queue_size: int = 1000):
+        super().__init__(lazy=True)
+        self.output_queue_size = output_queue_size
+        self.parallel = parallel
+        self.reader: DatasetReader = reader
+
+        self.waiting_processes: List[Process] = []
+        self.running_processes: List[Process] = []
 
 
 @DatasetReader.register("mention_categories")
