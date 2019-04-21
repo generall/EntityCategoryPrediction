@@ -81,7 +81,7 @@ class CategoryPredictor(Model):
         # shape: (batch_size, sample_size, seq_length, encoder_dim)
         encoder_outputs = encoder_outputs.view(batch_size, sample_size, seq_length, -1)
 
-        mentions_embeddings = self.seq_combiner(encoder_outputs, sentences_embedding)
+        mentions_embeddings = self.seq_combiner(encoder_outputs, mask, sentences_embedding)
 
         outputs = self._output_projection_layer(mentions_embeddings)
 

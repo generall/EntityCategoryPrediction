@@ -16,7 +16,8 @@ class MenionsLoader(DatasetReader):
 
         with open(file_path) as fd:
             for line in fd:
-                sent, categoty_tag = line.strip().split('\t')
+                categoty_tag, left_sent, mention, right_sent = line.strip(' ').split('\t')
+                sent = f"{left_sent.strip()} {self.left_tag} {mention.strip()} {self.right_tag} {right_sent.strip()}"
                 yield sent, categoty_tag
 
     def _read(self, file_path: str) -> Iterable[Instance]:
@@ -43,9 +44,13 @@ class MenionsLoader(DatasetReader):
             self,
             token_indexers: Dict[str, TokenIndexer],
             tokenizer: Tokenizer = None,
-            sentence_sample: int = 5
+            sentence_sample: int = 5,
+            left_tag: str = '@@mb@@',
+            right_tag: str = '@@me@@'
     ):
         super().__init__(lazy=True)
+        self.right_tag = right_tag
+        self.left_tag = left_tag
         self.tokenizer = tokenizer
         self.token_indexers = token_indexers
         self.sentence_sample = sentence_sample

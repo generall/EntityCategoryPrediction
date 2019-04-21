@@ -23,17 +23,23 @@ class SimpleSeqCombiner(SeqCombiner):
         super(SimpleSeqCombiner, self).__init__()
         self.final_vector_size = final_vector_size
 
-    def __call__(self, encoded_sequences, encoded_final_states):
+    def __call__(
+            self,
+            encoded_sequences: torch.Tensor,
+            encoded_sequences_mask: torch.LongTensor or None,
+            encoded_final_states: torch.Tensor
+    ):
         """
-        :param encoded_sequences: [batch_size * sample_size * seq_length * embedding_size]
-        :param encoded_final_states: [batch_size * sample_size * embedding_size]
-        :return: [batch_size * final_vector_size]
+        :param encoded_sequences: [batch_size * sample_size * seq_length * encoded_seq_dim]
+        :param encoded_sequences_mask: [batch_size * sample_size * seq_length]
+        :param encoded_final_states: [batch_size * sample_size * input_state_dim]
+        :return: [batch_size * output_dim]
         """
         encoded_final_states_max, _ = encoded_final_states.max(dim=1)
         return encoded_final_states_max
 
 
-class AttentionLSTM(torch.nn.Model):
+class AttentionLSTM(torch.nn.Module):
     def __init__(
             self,
             num_layers,
@@ -56,7 +62,7 @@ class AttentionLSTM(torch.nn.Model):
         self.lstms = [
             torch.nn.LSTM(
                 input_size=self.lstm_input_dim,
-                hidden_size=input_state_dim / 2,
+                hidden_size=int(input_state_dim / 2),
                 batch_first=True,
                 bidirectional=True
             )
@@ -73,9 +79,9 @@ class AttentionLSTM(torch.nn.Model):
 
     def forward(
             self,
-            encoded_sequences,
-            encoded_sequences_mask,
-            encoded_final_states
+            encoded_sequences: torch.Tensor,
+            encoded_sequences_mask: torch.LongTensor or None,
+            encoded_final_states: torch.Tensor
     ):
         """
         Apply LSTM over seq final states with attention over original sequences
@@ -89,18 +95,21 @@ class AttentionLSTM(torch.nn.Model):
         batch_size, sample_size, seq_length, encoded_seq_dim = encoded_sequences.shape
         _, _, input_state_dim = encoded_final_states.shape
 
-        encoded_sequences = encoded_sequences.view(batch_size * sample_size, seq_length, -1)
-        encoded_final_states = encoded_final_states.view(batch_size * sample_size, -1)
+        flat_size = batch_size * sample_size  # total amount of sentences in all batches
+
+        encoded_sequences = encoded_sequences.view(flat_size, seq_length, -1)
+        encoded_final_states = encoded_final_states.view(flat_size, -1)
+        encoded_sequences_mask = encoded_sequences_mask.view(flat_size, seq_length)
 
         for i in range(self.num_layers):
             att: Attention = self.attentions[i]
 
             lstm: torch.nn.LSTM = self.lstms[i]
 
-            # shape: ((batch_size * sample_size) * seq_length)
+            # shape: (flat_size * seq_length)
             weights = att(encoded_final_states, encoded_sequences, encoded_sequences_mask)
 
-            # shape: ((batch_size * sample_size) * encoded_seq_dim)
+            # shape: (flat_size * encoded_seq_dim)
             attention_lookup = weighted_sum(encoded_sequences, weights)
 
             # shape: (batch_size * sample_size * (input_state_dim + encoded_seq_dim))
@@ -110,9 +119,10 @@ class AttentionLSTM(torch.nn.Model):
             # lstm_hidden shape: (2 * batch_size * input_state_dim)
             lstm_processed, (lstm_hidden, _) = lstm(lstm_input)
 
-            # shape: ((batch_size * sample_size) * input_state_dim)
-            encoded_final_states = lstm_processed.view(batch_size * sample_size, -1)
+            # shape: (flat_size * input_state_dim)
+            encoded_final_states = lstm_processed.contiguous().view(batch_size * sample_size, -1)
 
+        # shape: (batch_size * input_state_dim)
         final_vectors = lstm_hidden.transpose(0, 1).contiguous().view(batch_size, input_state_dim)
 
         return self._output_projection(final_vectors)

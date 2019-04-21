@@ -26,6 +26,9 @@ pip install -r requirements.txt
 ## Train
 
 ```bash
+
+rm -rf ./data/vocabulary ; allennlp make-vocab -s ./data/ allen_conf.json --include-package category_prediction -o '{"vocabulary": {"directory_path": null}}'
+
 allennlp train -f -s data/stats allen_conf.json --include-package category_prediction
 ```
 

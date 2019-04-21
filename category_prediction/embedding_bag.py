@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from allennlp.data import Vocabulary
 from allennlp.modules import TokenEmbedder
-from gensim.models import FastText
+from gensim.models.fasttext import FastText
 from gensim.models.utils_any2vec import ft_ngram_hashes
 from torch.nn import EmbeddingBag
 
@@ -28,7 +28,6 @@ class FastTextEmbeddingBag(EmbeddingBag):
         self.model_params_path = model_params_path or self.get_params_path(model_path)
         self.hash_params = {}
         self.vocab = {}
-        self.hash2index = {}
         self.dimension = 0
         self.num_vectors = 0
 
@@ -56,7 +55,6 @@ class FastTextEmbeddingBag(EmbeddingBag):
             ft_params = json.load(fd)
             self.hash_params = ft_params['hash_params']
             self.vocab = ft_params['vocab']
-            self.hash2index = ft_params.get('hash2index', {})
             self.dimension = ft_params['dimension']
             self.num_vectors = ft_params['num_vectors']
 
@@ -75,34 +73,33 @@ class FastTextEmbeddingBag(EmbeddingBag):
         self.num_vectors = ft.wv.vectors_vocab.shape[0] + ft.wv.vectors_ngrams.shape[0]
 
         self.vocab = dict((word, keydvector.index) for word, keydvector in ft.wv.vocab.items())
-        self.hash2index = ft.wv.hash2index
 
         with open(self.model_params_path, 'w') as out:
             json.dump({
                 'hash_params': self.hash_params,
                 'vocab': self.vocab,
-                'hash2index': self.hash2index
             }, out, ensure_ascii=False, indent=2)
 
         return ft
 
     def get_subword_ids(self, word):
         if word in self.vocab:
-            return np.array([self.vocab[word]])
+            return [self.vocab[word]]
         res = []
         for ngram_id in ft_ngram_hashes(word, **self.hash_params):
-            res.append(self.hash2index.get(ngram_id, ngram_id) + len(self.vocab))
+            res.append(ngram_id + len(self.vocab))
 
-        return np.array(res)
+        return res
 
     def forward(self, words, offsets=None):
-        word_subinds = np.empty([0], dtype=np.int64)
+        word_subinds = []
         word_offsets = [0]
         for word in words:
             subinds = self.get_subword_ids(word)
-            word_subinds = np.concatenate((word_subinds, subinds))
+            word_subinds += subinds
             word_offsets.append(word_offsets[-1] + len(subinds))
         word_offsets = word_offsets[:-1]
+
         ind = torch.LongTensor(word_subinds, device=self.weight.device)
         offsets = torch.LongTensor(word_offsets, device=self.weight.device)
 
@@ -128,7 +125,10 @@ class GensimFasttext:
             self,
             model_path: str
     ):
-        self.model = FastText.load(model_path)
+        try:
+            self.model = FastText.load(model_path)
+        except Exception as e:
+            self.model = FastText.load_fasttext_format(model_path)
 
     def __call__(self, words):
         vectors = np.stack([self.model.wv.get_vector(word) for word in words]).astype(np.float32)
