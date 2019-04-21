@@ -27,7 +27,7 @@ class MenionsLoader(DatasetReader):
             yield self.text_to_instance(sentences, category_tag)
 
     def text_to_instance(self, sentences: List[str], category_tag: str) -> Instance:
-        categories = extract_categories(category_tag)
+        categories = self.category_mapping.get(category_tag)
 
         sentence_fields = []
         for sentence in sentences:
@@ -42,6 +42,7 @@ class MenionsLoader(DatasetReader):
 
     def __init__(
             self,
+            category_mapping_file: str,
             token_indexers: Dict[str, TokenIndexer],
             tokenizer: Tokenizer = None,
             sentence_sample: int = 5,
@@ -49,12 +50,13 @@ class MenionsLoader(DatasetReader):
             right_tag: str = '@@me@@'
     ):
         super().__init__(lazy=True)
+        self.category_mapping_file = category_mapping_file
+        with open(category_mapping_file) as fd:
+            self.category_mapping = json.load(fd)
+
         self.right_tag = right_tag
         self.left_tag = left_tag
         self.tokenizer = tokenizer
         self.token_indexers = token_indexers
         self.sentence_sample = sentence_sample
 
-
-def extract_categories(category_tag):
-    return category_tag.split('_')
