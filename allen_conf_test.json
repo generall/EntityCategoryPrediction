@@ -10,8 +10,8 @@
       "tokens2": "single_id"
     }
   },
-  "train_data_path": "./data/train_data.tsv",
-  "validation_data_path": "./data/valid_data.tsv",
+  "train_data_path": "./data/fake_data_train.tsv",
+  "validation_data_path": "data/fake_data_valid.tsv",
   "evaluate_on_test": true,
   "model": {
     "type": "category_predictor",
@@ -20,8 +20,8 @@
       "token_embedders": {
         "tokens": {
           "type": "fasttext-embedder",
-          "model_path": "./data/fasttext_embedding.bin",
-          "model_params_path": "./data/fasttext_embedding.params",
+          "model_path": "./data/gensim_fake_ft.model",
+          "model_params_path": "./data/gensim_fake_ft.model.params",
           "trainable": false,
           "force_cpu": false
         },
@@ -34,8 +34,8 @@
     },
     "encoder": {
       "type": "lstm",
-      "input_size": 310,
-      "hidden_size": 50,
+      "input_size": 40,
+      "hidden_size": 20,
       "num_layers": 1,
       "dropout": 0.5,
       "bidirectional": true
@@ -43,29 +43,29 @@
     "seq_combiner": {
       "type": "attention-combiner",
       "num_layers": 2,
-      "input_state_dim": 100,
-      "encoded_seq_dim": 100,
-      "output_dim": 50,
+      "input_state_dim": 40,
+      "encoded_seq_dim": 40,
+      "output_dim": 40,
       "dropout": 0.2,
       "attention": {
         "type": "linear",
-        "tensor_1_dim": 100,
-        "tensor_2_dim": 100
+        "tensor_1_dim": 40,
+        "tensor_2_dim": 40
       }
     }
   },
   "iterator": {
     "type": "basic",
-    "batch_size": 32
+    "batch_size": 4
   },
   "trainer": {
     "optimizer": {
       "type": "adam",
-      "lr": 0.01
+      "lr": 0.04
     },
     "should_log_learning_rate": true,
     "num_epochs": 5,
-    "model_save_interval": 1,
+    "model_save_interval": 100,
     "learning_rate_scheduler": {
       "type": "reduce_on_plateau",
       "factor": 0.5,
@@ -74,6 +74,8 @@
     }
   },
   "vocabulary": {
-    "directory_path": "./data/vocabulary/"
+    "directory_path": "./data/vocabulary/",
+    "min_count": 3,
+    "max_vocab_size": 200000
   }
 }

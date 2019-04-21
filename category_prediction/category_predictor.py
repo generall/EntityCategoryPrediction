@@ -37,7 +37,7 @@ class CategoryPredictor(Model):
 
         self.metrics: Dict[str, Metric] = {
             # 'auc': Auc(),
-            "m-auc": MultilabelAuc(vocab.get_vocab_size("labels")),
+            # "m-auc": MultilabelAuc(vocab.get_vocab_size("labels")),
             'f1': MultiLabelF1Measure()
         }
 
@@ -92,7 +92,7 @@ class CategoryPredictor(Model):
         if categories is not None:
             result['loss'] = self.loss(outputs, categories.float())
             # self.metrics['auc'](outputs.view(-1), categories.view(-1))
-            self.metrics['m-auc'](outputs, categories)
+            # self.metrics['m-auc'](outputs, categories)
             self.metrics['f1']((outputs > 0.5).long(), categories)
 
         return result
