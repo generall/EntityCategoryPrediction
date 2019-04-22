@@ -15,8 +15,8 @@
         "tokens2": "single_id"
       }
     },
-    "parallel": 2,
-    "output_queue_size": 10000
+    "parallel": 8,
+    "output_queue_size": 100000
   },
   "train_data_path": "./data/train_data.tsv_*",
   "validation_data_path": "./data/valid_data.tsv",
