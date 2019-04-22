@@ -18,7 +18,7 @@
     "parallel": 2,
     "output_queue_size": 10000
   },
-  "train_data_path": "./data/train_data.tsv",
+  "train_data_path": "./data/train_data.tsv_*",
   "validation_data_path": "./data/valid_data.tsv",
   "evaluate_on_test": true,
   "model": {
