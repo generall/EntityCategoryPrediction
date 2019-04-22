@@ -85,7 +85,7 @@ class MenionsLoader(DatasetReader):
 
     def _read_lines(self, file_path: str):
 
-        with open(file_path) as fd:
+        with open(file_path, encoding="utf-8") as fd:
             for line in fd:
                 category_tag, left_sent, mention, right_sent = line.strip(' ').split('\t')
                 sent = f"{left_sent.strip()} {self.left_tag} {mention.strip()} {self.right_tag} {right_sent.strip()}"
@@ -122,7 +122,7 @@ class MenionsLoader(DatasetReader):
     ):
         super().__init__(lazy=True)
         self.category_mapping_file = category_mapping_file
-        with open(category_mapping_file) as fd:
+        with open(category_mapping_file, encoding="utf-8") as fd:
             self.category_mapping = json.load(fd)
 
         self.right_tag = right_tag

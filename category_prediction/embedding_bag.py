@@ -51,7 +51,7 @@ class FastTextEmbeddingBag(EmbeddingBag):
         self.weight.requires_grad = trainable
 
     def load_saved_params(self, model_param_path):
-        with open(model_param_path) as fd:
+        with open(model_param_path, encoding="utf-8") as fd:
             ft_params = json.load(fd)
             self.hash_params = ft_params['hash_params']
             self.vocab = ft_params['vocab']
@@ -74,7 +74,7 @@ class FastTextEmbeddingBag(EmbeddingBag):
 
         self.vocab = dict((word, keydvector.index) for word, keydvector in ft.wv.vocab.items())
 
-        with open(self.model_params_path, 'w') as out:
+        with open(self.model_params_path, 'w', encoding="utf-8") as out:
             json.dump({
                 'hash_params': self.hash_params,
                 'vocab': self.vocab,
