@@ -77,7 +77,6 @@
     },
     "should_log_learning_rate": true,
     "num_epochs": 5,
-    "model_save_interval": 1,
     "learning_rate_scheduler": {
       "type": "reduce_on_plateau",
       "factor": 0.5,
