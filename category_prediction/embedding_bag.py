@@ -109,7 +109,7 @@ class FastTextEmbeddingBag(EmbeddingBag):
 
         if self.weight.is_cuda:
             ind = ind.cuda()
-            offsets = offsets.cude()
+            offsets = offsets.cuda()
 
         return super().forward(ind, offsets)
 
