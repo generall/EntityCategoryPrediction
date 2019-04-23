@@ -162,6 +162,8 @@ class FasttextTokenEmbedder(TokenEmbedder):
         self.vocab_namespace = vocab_namespace
         self.vocab = vocab
 
+        self.projection_layer = torch.nn.Linear(1, 1)  # is not used yet
+
         if force_cpu:
             assert not trainable, "Can't train weight with force_cpu mode"
             self.embedding = GensimFasttext(model_path=model_path)
@@ -176,7 +178,6 @@ class FasttextTokenEmbedder(TokenEmbedder):
         return self.embedding.dimension
 
     def forward(self, inputs: torch.Tensor):
-        original_device = inputs.device
 
         original_size = inputs.size()
         inputs = inputs.view(-1)
@@ -189,7 +190,7 @@ class FasttextTokenEmbedder(TokenEmbedder):
         view_args = list(original_size) + [embedded.size(-1)]
         embedded = embedded.view(*view_args)
 
-        if embedded.device != original_device:
-            embedded.to(original_device)
+        if self.projection_layer.is_cuda:
+            embedded.cuda()
 
         return embedded
