@@ -31,7 +31,7 @@
           "model_path": "./data/gensim_fake_ft.model",
           "model_params_path": "./data/gensim_fake_ft.model.params",
           "trainable": false,
-          "force_cpu": false
+          "force_cpu": true
         },
         "tokens2": {
           "type": "embedding",
