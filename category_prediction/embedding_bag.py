@@ -193,5 +193,6 @@ class FasttextTokenEmbedder(TokenEmbedder):
         if self.projection_layer.weight.is_cuda:
             embedded.cuda()
 
+        print("inputs.device:", inputs.device)
         print("embedded.device:", embedded.device)
         return embedded
