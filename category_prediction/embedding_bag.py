@@ -190,7 +190,7 @@ class FasttextTokenEmbedder(TokenEmbedder):
         view_args = list(original_size) + [embedded.size(-1)]
         embedded = embedded.view(*view_args)
 
-        if self.projection_layer.is_cuda:
+        if self.projection_layer.weight.is_cuda:
             embedded.cuda()
 
         return embedded
