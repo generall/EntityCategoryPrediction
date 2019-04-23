@@ -103,7 +103,6 @@ class FastTextEmbeddingBag(EmbeddingBag):
             word_offsets.append(word_offsets[-1] + len(subinds))
         word_offsets = word_offsets[:-1]
 
-
         ind = torch.LongTensor(word_subinds)
         offsets = torch.LongTensor(word_offsets)
 

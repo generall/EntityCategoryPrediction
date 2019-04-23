@@ -39,7 +39,11 @@ class SimpleSeqCombiner(SeqCombiner):
         return encoded_final_states_max
 
 
-class AttentionLSTM(torch.nn.Module):
+@SeqCombiner.register('attention-combiner')
+class LstmAttentionCombiner(torch.nn.Module, SeqCombiner):
+    def get_output_dim(self):
+        return self.output_dim
+
     def __init__(
             self,
             num_layers,
@@ -49,7 +53,7 @@ class AttentionLSTM(torch.nn.Module):
             dropout: float,
             attention: Attention
     ):
-        super(AttentionLSTM, self).__init__()
+        super(LstmAttentionCombiner, self).__init__()
         self.num_layers = num_layers
         self.output_dim = output_dim
 
@@ -59,7 +63,7 @@ class AttentionLSTM(torch.nn.Module):
 
         self.lstm_input_dim = input_state_dim + encoded_seq_dim  # Encoded state + attention
 
-        self.lstms = [
+        self.lstms = torch.nn.ModuleList([
             torch.nn.LSTM(
                 input_size=self.lstm_input_dim,
                 hidden_size=int(input_state_dim / 2),
@@ -67,7 +71,7 @@ class AttentionLSTM(torch.nn.Module):
                 bidirectional=True
             )
             for _ in range(num_layers)
-        ]
+        ])
 
         self._output_projection = FeedForward(
             input_state_dim,
@@ -127,8 +131,3 @@ class AttentionLSTM(torch.nn.Module):
 
         return self._output_projection(final_vectors)
 
-
-@SeqCombiner.register('attention-combiner')
-class LstmAttentionCombiner(SeqCombiner, AttentionLSTM):
-    def get_output_dim(self):
-        return self.output_dim
