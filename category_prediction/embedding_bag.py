@@ -2,6 +2,7 @@ import json
 import os
 from functools import partial
 
+import gensim
 import numpy as np
 import torch
 from allennlp.data import Vocabulary
@@ -9,6 +10,18 @@ from allennlp.modules import TokenEmbedder
 from gensim.models.fasttext import FastText
 from gensim.models.utils_any2vec import ft_ngram_hashes
 from torch.nn import EmbeddingBag
+
+
+def load_fasttext_model(path):
+    try:
+        model = FastText.load(path).wv
+    except Exception as e:
+        try:
+            model = FastText.load_fasttext_format(path).wv
+        except Exception as e:
+            model = gensim.models.KeyedVectors.load(path)
+
+    return model
 
 
 class FastTextEmbeddingBag(EmbeddingBag):
@@ -35,7 +48,7 @@ class FastTextEmbeddingBag(EmbeddingBag):
 
         if self.model_path and os.path.exists(self.model_path):
             ft = self.load_ft_model(self.model_path)
-            weights = np.concatenate([ft.wv.vectors_vocab, ft.wv.vectors_ngrams], axis=0)
+            weights = np.concatenate([ft.vectors_vocab, ft.vectors_ngrams], axis=0)
         else:
             if os.path.exists(self.model_params_path):
                 # Assume weights will be loaded later
@@ -62,20 +75,20 @@ class FastTextEmbeddingBag(EmbeddingBag):
 
         self.model_params_path = self.get_params_path(model_path)
         try:
-            ft = FastText.load(model_path)
+            ft = FastText.load(model_path).wv
         except Exception as e:
-            ft = FastText.load_fasttext_format(model_path)
+            ft = FastText.load_fasttext_format(model_path).wv
 
         self.hash_params = {
-            "minn": ft.wv.min_n,
-            "maxn": ft.wv.max_n,
-            "num_buckets": ft.wv.bucket,
-            "fb_compatible": ft.wv.compatible_hash,
+            "minn": ft.min_n,
+            "maxn": ft.max_n,
+            "num_buckets": ft.bucket,
+            "fb_compatible": ft.compatible_hash,
         }
-        self.dimension = ft.wv.vector_size
-        self.num_vectors = ft.wv.vectors_vocab.shape[0] + ft.wv.vectors_ngrams.shape[0]
+        self.dimension = ft.vector_size
+        self.num_vectors = ft.vectors_vocab.shape[0] + ft.vectors_ngrams.shape[0]
 
-        self.vocab = dict((word, keydvector.index) for word, keydvector in ft.wv.vocab.items())
+        self.vocab = dict((word, keydvector.index) for word, keydvector in ft.vocab.items())
 
         with open(self.model_params_path, 'w', encoding="utf-8") as out:
             json.dump({
@@ -132,13 +145,10 @@ class GensimFasttext:
             self,
             model_path: str
     ):
-        try:
-            self.model = FastText.load(model_path)
-        except Exception as e:
-            self.model = FastText.load_fasttext_format(model_path)
+        self.model = load_fasttext_model(model_path)
 
     def __call__(self, words):
-        vectors = np.stack([self.model.wv.get_vector(word) for word in words]).astype(np.float32)
+        vectors = np.stack([self.model.get_vector(word) for word in words]).astype(np.float32)
         return torch.from_numpy(vectors)
 
     @property

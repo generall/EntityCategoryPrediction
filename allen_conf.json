@@ -28,7 +28,7 @@
       "token_embedders": {
         "tokens": {
           "type": "fasttext-embedder",
-          "model_path": "./data/fasttext_embedding.bin",
+          "model_path": "./data/fasttext_embedding.model",
           "model_params_path": "./data/fasttext_embedding.params",
           "trainable": false,
           "force_cpu": true
