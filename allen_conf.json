@@ -31,7 +31,7 @@
           "model_path": "./data/fasttext_embedding.model",
           "model_params_path": "./data/fasttext_embedding.params",
           "trainable": false,
-          "force_cpu": true
+          "force_cpu": false
         },
         "tokens2": {
           "type": "embedding",
