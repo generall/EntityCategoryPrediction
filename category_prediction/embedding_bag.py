@@ -74,10 +74,7 @@ class FastTextEmbeddingBag(EmbeddingBag):
     def load_ft_model(self, model_path):
 
         self.model_params_path = self.get_params_path(model_path)
-        try:
-            ft = FastText.load(model_path).wv
-        except Exception as e:
-            ft = FastText.load_fasttext_format(model_path).wv
+        ft = load_fasttext_model(model_path)
 
         self.hash_params = {
             "minn": ft.min_n,
