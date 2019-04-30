@@ -6,9 +6,7 @@ from itertools import groupby
 from multiprocessing import Manager, Queue, Process, get_logger
 from typing import Dict, Iterable, List
 
-from allennlp.common.util import pad_sequence_to_length
-from allennlp.data import DatasetReader, TokenIndexer, Tokenizer, Instance, TokenType, Token, Vocabulary, DataIterator
-from allennlp.data.dataset import Batch
+from allennlp.data import DatasetReader, TokenIndexer, Tokenizer, Instance
 from allennlp.data.fields import TextField, ListField, MultiLabelField
 
 logger = get_logger()  # pylint: disable=invalid-name
