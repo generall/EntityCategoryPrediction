@@ -15,7 +15,7 @@ logger = get_logger()  # pylint: disable=invalid-name
 logger.setLevel(logging.INFO)
 
 
-@MultiprocessIterator.register("numpy-multiprocessing")
+@DataIterator.register("numpy-multiprocessing")
 class NumpyItearator(MultiprocessIterator):
 
     @classmethod
