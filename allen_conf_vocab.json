@@ -1,22 +1,20 @@
 {
   "dataset_reader": {
-    "type": "parallel_reader",
-    "reader": {
-      "type": "vocab_mention_categories",
-      "category_mapping_file": "./data/category_mapping.json",
-      "tokenizer": {
-        "type": "word",
-        "word_splitter": {
-          "type": "fast-splitter"
-        }
-      },
-      "token_indexers": {
-        "tokens": "single_id",
-        "tokens2": "single_id"
+    "type": "mention_categories",
+    "category_mapping_file": "./data/category_mapping.json",
+    "tokenizer": {
+      "type": "word",
+      "word_splitter": {
+        "type": "fast-splitter"
       }
     },
-    "parallel": 8,
-    "output_queue_size": 100000
+    "token_indexers": {
+      "tokens": {
+        "type": "fasttext-id",
+        "model_path": "./data/fasttext_embedding.model",
+        "model_params_path": "./data/fasttext_embedding.model.params"
+      }
+    }
   },
   "train_data_path": "./data/train_data.tsv",
   "validation_data_path": "./data/valid_data.tsv",
@@ -26,17 +24,29 @@
     "text_embedder": {
       "type": "basic",
       "token_embedders": {
-        "tokens": {
-          "type": "fasttext-embedder",
-          "model_path": "./data/fasttext_embedding.bin",
-          "model_params_path": "./data/fasttext_embedding.params",
-          "trainable": false,
-          "force_cpu": false
+        "type": "basic",
+        "allow_unmatched_keys": true,
+        "embedder_to_indexer_map": {
+          "tokens-ngram": [
+            "tokens-ngram",
+            "tokens-ngram-offsets",
+            "tokens-ngram-mask"
+          ],
+          "tokens": [
+            "tokens"
+          ]
         },
-        "tokens2": {
-          "type": "embedding",
-          "embedding_dim": 10,
-          "trainable": true
+        "token_embedders": {
+          "tokens-ngram": {
+            "type": "fasttext-embedder",
+            "model_path": "./data/fasttext_embedding.model",
+            "trainable": false
+          },
+          "tokens": {
+            "type": "embedding",
+            "embedding_dim": 10,
+            "trainable": true
+          }
         }
       }
     },
@@ -63,20 +73,21 @@
     }
   },
   "iterator": {
-    "type": "multiprocess",
+    "type": "numpy-multiprocessing",
+    "num_workers": 2,
     "base_iterator": {
       "type": "basic",
       "batch_size": 32
-    },
-    "num_workers": 2
+    }
   },
   "trainer": {
+    "shuffle": false,
     "optimizer": {
       "type": "adam",
-      "lr": 0.01
+      "lr": 0.001
     },
     "should_log_learning_rate": true,
-    "num_epochs": 5,
+    "num_epochs": 50,
     "learning_rate_scheduler": {
       "type": "reduce_on_plateau",
       "factor": 0.5,
@@ -87,7 +98,7 @@
   "vocabulary": {
     "directory_path": null,
     "min_count": {
-      "tokens":  3
+      "tokens": 3
     },
     "max_vocab_size": 200000
   }

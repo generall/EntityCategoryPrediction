@@ -9,8 +9,11 @@
       }
     },
     "token_indexers": {
-      "tokens": "single_id",
-      "tokens2": "single_id"
+      "tokens": {
+        "type": "fasttext-id",
+        "model_path": "./data/fasttext_embedding.model",
+        "model_params_path": "./data/fasttext_embedding.model.params"
+      }
     }
   },
   "train_data_path": "./data/train_data.tsv",
@@ -21,17 +24,29 @@
     "text_embedder": {
       "type": "basic",
       "token_embedders": {
-        "tokens": {
-          "type": "fasttext-embedder",
-          "model_path": "./data/fasttext_embedding.model",
-          "model_params_path": "./data/fasttext_embedding.params",
-          "trainable": false,
-          "force_cpu": false
+        "type": "basic",
+        "allow_unmatched_keys": true,
+        "embedder_to_indexer_map": {
+          "tokens-ngram": [
+            "tokens-ngram",
+            "tokens-ngram-offsets",
+            "tokens-ngram-mask"
+          ],
+          "tokens": [
+            "tokens"
+          ]
         },
-        "tokens2": {
-          "type": "embedding",
-          "embedding_dim": 10,
-          "trainable": true
+        "token_embedders": {
+          "tokens-ngram": {
+            "type": "fasttext-embedder",
+            "model_path": "./data/fasttext_embedding.model",
+            "trainable": false
+          },
+          "tokens": {
+            "type": "embedding",
+            "embedding_dim": 10,
+            "trainable": true
+          }
         }
       }
     },
@@ -69,7 +84,7 @@
     "shuffle": false,
     "optimizer": {
       "type": "adam",
-      "lr": 0.01
+      "lr": 0.001
     },
     "should_log_learning_rate": true,
     "num_epochs": 50,

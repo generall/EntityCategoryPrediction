@@ -50,8 +50,12 @@ class CategoryPredictor(Model):
         :return:
         """
 
+        # exclude tensors which are larger then real amount of tokens
+        # such as tensors ngram-tensors
+        maskable_sentences = dict((key, val) for key, val in sentences.items() if '-ngram' not in key)
+
         # shape: (batch_size * sample_size * seq_length)
-        mask = get_text_field_mask({"tokens2": sentences['tokens2']}, num_wrapping_dims=1)
+        mask = get_text_field_mask(maskable_sentences, num_wrapping_dims=1)
 
         batch_size, sample_size, seq_length = mask.shape
 

@@ -4,6 +4,7 @@ from typing import Dict, List
 
 from allennlp.common.util import pad_sequence_to_length
 from allennlp.data import TokenIndexer, TokenType, Token, Vocabulary
+from allennlp.data.token_indexers import SingleIdTokenIndexer
 from gensim.models.utils_any2vec import ft_ngram_hashes
 
 from category_prediction import load_fasttext_model
@@ -12,12 +13,23 @@ from category_prediction import load_fasttext_model
 @TokenIndexer.register("fasttext-id")
 class FasttextTokenIndexer(TokenIndexer[int]):
 
-    def __init__(self, model_path, model_params_path=None):
+    def __init__(
+            self,
+            model_path,
+            namespace: str = 'tokens',
+            lowercase_tokens: bool = False,
+            model_params_path=None
+    ):
         self.model_path = model_path
         self.model_params_path = model_params_path or self.get_params_path(model_path)
         self.hash_params = {}
         self.vocab = {}
         self.num_vectors = 0
+
+        self.single_id_indexer = SingleIdTokenIndexer(
+            namespace,
+            lowercase_tokens
+        )  # ToDo: Add start and end tokens params
 
         if os.path.exists(self.model_params_path):
             # Assume weights will be loaded later
@@ -55,20 +67,20 @@ class FasttextTokenIndexer(TokenIndexer[int]):
             }, out, ensure_ascii=False, indent=2)
 
     def words_to_indexes(self, words):
-        word_subinds = []
+        words_ngram_ids = []
         word_offsets = [0]
         mask = []
         for word in words:
-            subinds = self.get_subword_ids(word)
-            word_subinds += subinds
-            mask += [1] * len(subinds)
-            word_offsets.append(word_offsets[-1] + len(subinds))
+            ngram_ids = self.get_ngram_ids(word)
+            words_ngram_ids += ngram_ids
+            mask += [1] * len(ngram_ids)
+            word_offsets.append(word_offsets[-1] + len(ngram_ids))
 
         word_offsets = word_offsets[:-1]
 
-        return word_subinds, word_offsets, mask
+        return words_ngram_ids, word_offsets, mask
 
-    def get_subword_ids(self, word):
+    def get_ngram_ids(self, word):
         if word in self.vocab:
             return [self.vocab[word]]
         res = []
@@ -78,17 +90,18 @@ class FasttextTokenIndexer(TokenIndexer[int]):
         return res
 
     def count_vocab_items(self, token: Token, counter: Dict[str, Dict[str, int]]):
-        pass
+        return self.single_id_indexer.count_vocab_items(token, counter)
 
     def tokens_to_indices(self, tokens: List[Token], vocabulary: Vocabulary, index_name: str) -> Dict[
         str, List[TokenType]]:
         words = [token.text for token in tokens]
-        word_subinds, word_offsets, mask = self.words_to_indexes(words)
+        word_ngram_ids, word_offsets, mask = self.words_to_indexes(words)
 
         return {
-            index_name: word_subinds,
-            f"{index_name}-offsets": word_offsets,
-            f"{index_name}-mask": mask
+            f"{index_name}-ngram": word_ngram_ids,
+            f"{index_name}-ngram-offsets": word_offsets,
+            f"{index_name}-ngram-mask": mask,
+            **self.single_id_indexer.tokens_to_indices(tokens, vocabulary, index_name)
         }
 
     def get_padding_token(self) -> TokenType:

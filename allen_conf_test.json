@@ -13,8 +13,7 @@
         "type": "fasttext-id",
         "model_path": "./data/gensim_fake_ft.model",
         "model_params_path": "./data/gensim_fake_ft.model.params"
-      },
-      "tokens2": "single_id"
+      }
     }
   },
   "train_data_path": "./data/fake_data_train.tsv",
@@ -26,16 +25,22 @@
       "type": "basic",
       "allow_unmatched_keys": true,
       "embedder_to_indexer_map": {
-        "tokens": ["tokens", "tokens-offsets", "tokens-mask"],
-        "tokens2": ["tokens2"]
+        "tokens-ngram": [
+          "tokens-ngram",
+          "tokens-ngram-offsets",
+          "tokens-ngram-mask"
+        ],
+        "tokens": [
+          "tokens"
+        ]
       },
       "token_embedders": {
-        "tokens": {
+        "tokens-ngram": {
           "type": "fasttext-embedder",
           "model_path": "./data/gensim_fake_ft.model",
           "trainable": false
         },
-        "tokens2": {
+        "tokens": {
           "type": "embedding",
           "embedding_dim": 10,
           "trainable": true
@@ -65,8 +70,12 @@
     }
   },
   "iterator": {
-    "type": "basic",
-    "batch_size": 4
+    "type": "numpy-multiprocessing",
+    "num_workers": 2,
+    "base_iterator": {
+      "type": "basic",
+      "batch_size": 4
+    }
   },
   "trainer": {
     "optimizer": {
