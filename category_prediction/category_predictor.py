@@ -4,14 +4,11 @@ import torch
 from allennlp.data import Vocabulary
 from allennlp.models import Model
 from allennlp.modules import TextFieldEmbedder, Seq2SeqEncoder
-from allennlp.nn.util import get_mask_from_sequence_lengths, get_text_field_mask, get_lengths_from_binary_sequence_mask, \
-    sort_batch_by_length, get_final_encoder_states
+from allennlp.nn.util import get_text_field_mask, get_final_encoder_states
+from allennlp.training.metrics import Metric
 from torch.nn import Linear
 
-from allennlp.training.metrics import Auc, Metric
-
 from category_prediction.metrics.multilabel_f1 import MultiLabelF1Measure
-from category_prediction.metrics.multilabel_auc import MultilabelAuc
 from category_prediction.seq_combiner import SeqCombiner
 
 
@@ -43,7 +40,7 @@ class CategoryPredictor(Model):
 
     def forward(
             self,
-            sentences: torch.LongTensor,
+            sentences: Dict[str, torch.LongTensor],
             categories: torch.LongTensor = None
     ) -> Dict[str, torch.Tensor]:
         """
@@ -52,8 +49,9 @@ class CategoryPredictor(Model):
         :param categories:
         :return:
         """
+
         # shape: (batch_size * sample_size * seq_length)
-        mask = get_text_field_mask(sentences, num_wrapping_dims=1)
+        mask = get_text_field_mask({"tokens2": sentences['tokens2']}, num_wrapping_dims=1)
 
         batch_size, sample_size, seq_length = mask.shape
 

@@ -1,22 +1,21 @@
 {
   "dataset_reader": {
-    "type": "parallel_reader",
-    "reader": {
-      "type": "mention_categories",
-      "category_mapping_file": "./data/category_mapping_test.json",
-      "tokenizer": {
-        "type": "word",
-        "word_splitter": {
-          "type": "fast-splitter"
-        }
-      },
-      "token_indexers": {
-        "tokens": "single_id",
-        "tokens2": "single_id"
+    "type": "mention_categories",
+    "category_mapping_file": "./data/category_mapping_test.json",
+    "tokenizer": {
+      "type": "word",
+      "word_splitter": {
+        "type": "fast-splitter"
       }
     },
-    "parallel": 2,
-    "output_queue_size": 10000
+    "token_indexers": {
+      "tokens": {
+        "type": "fasttext-id",
+        "model_path": "./data/gensim_fake_ft.model",
+        "model_params_path": "./data/gensim_fake_ft.model.params"
+      },
+      "tokens2": "single_id"
+    }
   },
   "train_data_path": "./data/fake_data_train.tsv",
   "validation_data_path": "data/fake_data_valid.tsv",
@@ -25,13 +24,16 @@
     "type": "category_predictor",
     "text_embedder": {
       "type": "basic",
+      "allow_unmatched_keys": true,
+      "embedder_to_indexer_map": {
+        "tokens": ["tokens", "tokens-offsets", "tokens-mask"],
+        "tokens2": ["tokens2"]
+      },
       "token_embedders": {
         "tokens": {
           "type": "fasttext-embedder",
           "model_path": "./data/gensim_fake_ft.model",
-          "model_params_path": "./data/gensim_fake_ft.model.params",
-          "trainable": false,
-          "force_cpu": true
+          "trainable": false
         },
         "tokens2": {
           "type": "embedding",
