@@ -23,30 +23,27 @@
     "type": "category_predictor",
     "text_embedder": {
       "type": "basic",
+      "allow_unmatched_keys": true,
+      "embedder_to_indexer_map": {
+        "tokens-ngram": [
+          "tokens-ngram",
+          "tokens-ngram-offsets",
+          "tokens-ngram-mask"
+        ],
+        "tokens": [
+          "tokens"
+        ]
+      },
       "token_embedders": {
-        "type": "basic",
-        "allow_unmatched_keys": true,
-        "embedder_to_indexer_map": {
-          "tokens-ngram": [
-            "tokens-ngram",
-            "tokens-ngram-offsets",
-            "tokens-ngram-mask"
-          ],
-          "tokens": [
-            "tokens"
-          ]
+        "tokens-ngram": {
+          "type": "fasttext-embedder",
+          "model_path": "./data/fasttext_embedding.model",
+          "trainable": false
         },
-        "token_embedders": {
-          "tokens-ngram": {
-            "type": "fasttext-embedder",
-            "model_path": "./data/fasttext_embedding.model",
-            "trainable": false
-          },
-          "tokens": {
-            "type": "embedding",
-            "embedding_dim": 10,
-            "trainable": true
-          }
+        "tokens": {
+          "type": "embedding",
+          "embedding_dim": 10,
+          "trainable": true
         }
       }
     },
