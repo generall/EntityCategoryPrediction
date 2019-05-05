@@ -108,7 +108,7 @@ class NumpyItearator(MultiprocessIterator):
             else:
                 shapes = get_shapes(item)
 
-                logger.info("item.shape", shapes, "input_queue", input_queue.qsize(), "out_queue", output_queue.qsize())
+                print("item.shape", shapes, "input_queue", input_queue.qsize(), "out_queue", output_queue.qsize())
                 yield self.numpy_to_tensor(item)
 
         for process in self.processes:
