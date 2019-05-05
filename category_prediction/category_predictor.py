@@ -101,3 +101,23 @@ class CategoryPredictor(Model):
 
     def get_metrics(self, reset: bool = False) -> Dict[str, float]:
         return dict((key, metric.get_metric(reset)) for key, metric in self.metrics.items())
+
+
+@Model.register("fake_category_predictor")
+class FakeCategoryPredictor(Model):
+
+    def __init__(self, vocab: Vocabulary):
+        super(FakeCategoryPredictor, self).__init__(vocab)
+        self.liner = torch.nn.Linear(1, 1)
+
+    def forward(self, *args, **kwargs) -> Dict[str, torch.Tensor]:
+        t = torch.tensor([1.0])
+        t2 = self.liner(t)
+        return {
+            "loss": t2[0]
+        }
+
+    def get_metrics(self, reset: bool = False) -> Dict[str, float]:
+        return {}
+
+

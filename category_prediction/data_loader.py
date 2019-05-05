@@ -147,3 +147,5 @@ class VocabMentionsLoader(MenionsLoader):
             'sentences': sent_field,
             'categories': MultiLabelField(categories)
         })
+
+

@@ -1,4 +1,5 @@
 import logging
+import os
 from multiprocessing import Manager, Process, Queue
 from multiprocessing.util import get_logger
 from typing import Any, Iterable, Iterator
@@ -42,6 +43,7 @@ class NumpyItearator(MultiprocessIterator):
 
     @classmethod
     def _queuer(cls, *args, **kwargs):
+        print("Querer pid:", os.getpid())
         return _queuer(*args, **kwargs)
 
     @classmethod
@@ -99,6 +101,8 @@ class NumpyItearator(MultiprocessIterator):
             else:
                 return item.shape
 
+        print("Main pid:", os.getpid())
+
         num_finished = 0
         while num_finished < self.num_workers:
             item = output_queue.get()
@@ -107,7 +111,6 @@ class NumpyItearator(MultiprocessIterator):
                 logger.info(f"worker {item} finished ({num_finished} / {self.num_workers})")
             else:
                 shapes = get_shapes(item)
-
                 print("item.shape", shapes, "input_queue", input_queue.qsize(), "out_queue", output_queue.qsize())
                 yield self.numpy_to_tensor(item)
 
