@@ -29,7 +29,7 @@
         "embedder_to_indexer_map": {
           "tokens-ngram": [
             "tokens-ngram",
-            "tokens-ngram-offsets",
+            "tokens-ngram-lengths",
             "tokens-ngram-mask"
           ],
           "tokens": [

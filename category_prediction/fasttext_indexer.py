@@ -68,17 +68,15 @@ class FasttextTokenIndexer(TokenIndexer[int]):
 
     def words_to_indexes(self, words):
         words_ngram_ids = []
-        word_offsets = [0]
+        word_lengths = []
         mask = []
         for word in words:
             ngram_ids = self.get_ngram_ids(word)
             words_ngram_ids += ngram_ids
             mask += [1] * len(ngram_ids)
-            word_offsets.append(word_offsets[-1] + len(ngram_ids))
+            word_lengths.append(len(ngram_ids))
 
-        word_offsets = word_offsets[:-1]
-
-        return words_ngram_ids, word_offsets, mask
+        return words_ngram_ids, word_lengths, mask
 
     def get_ngram_ids(self, word):
         if word in self.vocab:
@@ -95,11 +93,11 @@ class FasttextTokenIndexer(TokenIndexer[int]):
     def tokens_to_indices(self, tokens: List[Token], vocabulary: Vocabulary, index_name: str) -> Dict[
         str, List[TokenType]]:
         words = [token.text for token in tokens]
-        word_ngram_ids, word_offsets, mask = self.words_to_indexes(words)
+        word_ngram_ids, word_lengths, mask = self.words_to_indexes(words)
 
         return {
             f"{index_name}-ngram": word_ngram_ids,
-            f"{index_name}-ngram-offsets": word_offsets,
+            f"{index_name}-ngram-lengths": word_lengths,
             f"{index_name}-ngram-mask": mask,
             **self.single_id_indexer.tokens_to_indices(tokens, vocabulary, index_name)
         }

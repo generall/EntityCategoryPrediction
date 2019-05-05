@@ -84,15 +84,19 @@ class FastTextTokenEmbedder(TokenEmbedder):
         super(FastTextTokenEmbedder, self).__init__()
         self.embedding = FastTextEmbeddingBag(model_path, trainable)
 
-    def forward(self, indexes: torch.Tensor, offsets: torch.Tensor, mask: torch.Tensor):
+    def forward(self, indexes: torch.Tensor, lengths: torch.Tensor, mask: torch.Tensor):
 
         # 1D Tensor
         raw_indexes = torch.masked_select(indexes, mask.byte())
 
-        original_size = offsets.size()
+        original_size = lengths.size()
+
+        # Convert ngram lengths into offsets. Offset = start position of each word
+        offsets = lengths.view(-1).cumsum(dim=0).roll(1)
+        offsets[0] = 0
 
         # shape: (total_words, embedding_size)
-        embedded = self.embedding(raw_indexes, offsets.view(-1))
+        embedded = self.embedding(raw_indexes, offsets)
 
         # shape: (batch_size, num_sentences, sent_length, embeddings)
         view_args = list(original_size) + [embedded.size(-1)]
