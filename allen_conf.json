@@ -74,7 +74,7 @@
     "num_workers": 6,
     "base_iterator": {
       "type": "basic",
-      "batch_size": 256
+      "batch_size": 32
     }
   },
   "trainer": {
