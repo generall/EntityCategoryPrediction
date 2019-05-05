@@ -93,6 +93,12 @@ class NumpyItearator(MultiprocessIterator):
             process.start()
             self.processes.append(process)
 
+        def get_shapes(item):
+            if isinstance(item, dict):
+                return [(key, get_shapes(val)) for key, val in item.items()]
+            else:
+                return item.shape
+
         num_finished = 0
         while num_finished < self.num_workers:
             item = output_queue.get()
@@ -100,7 +106,7 @@ class NumpyItearator(MultiprocessIterator):
                 num_finished += 1
                 logger.info(f"worker {item} finished ({num_finished} / {self.num_workers})")
             else:
-                shapes = [(key, val.shape) for key, val in item.items()]
+                shapes = get_shapes(item)
 
                 logger.info("item.shape", shapes, "input_queue", input_queue.qsize(), "out_queue", output_queue.qsize())
                 yield self.numpy_to_tensor(item)
