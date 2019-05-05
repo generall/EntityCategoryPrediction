@@ -71,7 +71,7 @@
   },
   "iterator": {
     "type": "numpy-multiprocessing",
-    "num_workers": 2,
+    "num_workers": 6,
     "base_iterator": {
       "type": "basic",
       "batch_size": 32
