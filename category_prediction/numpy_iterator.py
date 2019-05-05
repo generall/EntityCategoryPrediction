@@ -1,6 +1,6 @@
 import logging
 import os
-from multiprocessing import Manager, Process, Queue
+from multiprocessing import Process, Queue
 from multiprocessing.util import get_logger
 from typing import Any, Iterable, Iterator
 
@@ -43,7 +43,7 @@ class NumpyItearator(MultiprocessIterator):
 
     @classmethod
     def _queuer(cls, *args, **kwargs):
-        print("Querer pid:", os.getpid())
+        # print("Querer pid:", os.getpid())
         return _queuer(*args, **kwargs)
 
     @classmethod
@@ -57,6 +57,7 @@ class NumpyItearator(MultiprocessIterator):
         groups them into batches of size ``batch_size``, converts them
         to ``TensorDict`` s, and puts them on the ``output_queue``.
         """
+        # print("Worker pid:", os.getpid())
 
         def instances() -> Iterator[Instance]:
             instance = input_queue.get()
@@ -80,9 +81,8 @@ class NumpyItearator(MultiprocessIterator):
         if num_epochs is None:
             raise ConfigurationError("Multiprocess Iterator must be run for a fixed number of epochs")
 
-        manager = Manager()
-        output_queue = manager.Queue(self.output_queue_size)
-        input_queue = manager.Queue(self.output_queue_size * self.batch_size)
+        output_queue = Queue(self.output_queue_size)
+        input_queue = Queue(self.output_queue_size * self.batch_size)
 
         # Start process that populates the queue.
         self.queuer = Process(target=self._queuer, args=(instances, input_queue, self.num_workers, num_epochs))
@@ -101,8 +101,6 @@ class NumpyItearator(MultiprocessIterator):
             else:
                 return item.shape
 
-        print("Main pid:", os.getpid())
-
         num_finished = 0
         while num_finished < self.num_workers:
             item = output_queue.get()
@@ -110,8 +108,8 @@ class NumpyItearator(MultiprocessIterator):
                 num_finished += 1
                 logger.info(f"worker {item} finished ({num_finished} / {self.num_workers})")
             else:
-                shapes = get_shapes(item)
-                print("item.shape", shapes, "input_queue", input_queue.qsize(), "out_queue", output_queue.qsize())
+                # shapes = get_shapes(item)
+                # print("item.shape", shapes, "input_queue", input_queue.qsize(), "out_queue", output_queue.qsize())
                 yield self.numpy_to_tensor(item)
 
         for process in self.processes:
