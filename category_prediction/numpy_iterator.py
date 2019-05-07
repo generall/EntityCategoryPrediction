@@ -1,7 +1,6 @@
 import logging
 import os
 from multiprocessing import Process, Queue
-from multiprocessing.util import get_logger
 from typing import Any, Iterable, Iterator
 
 import numpy as np
@@ -12,8 +11,7 @@ from allennlp.data.iterators import MultiprocessIterator
 from allennlp.data.iterators.data_iterator import TensorDict
 from allennlp.data.iterators.multiprocess_iterator import _queuer
 
-logger = get_logger()  # pylint: disable=invalid-name
-logger.setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 @DataIterator.register("numpy-multiprocessing")
@@ -57,6 +55,7 @@ class NumpyItearator(MultiprocessIterator):
         groups them into batches of size ``batch_size``, converts them
         to ``TensorDict`` s, and puts them on the ``output_queue``.
         """
+
         # print("Worker pid:", os.getpid())
 
         def instances() -> Iterator[Instance]:
@@ -102,14 +101,18 @@ class NumpyItearator(MultiprocessIterator):
                 return item.shape
 
         num_finished = 0
+        num_items = 0
         while num_finished < self.num_workers:
             item = output_queue.get()
+            num_items += 1
             if isinstance(item, int):
                 num_finished += 1
                 logger.info(f"worker {item} finished ({num_finished} / {self.num_workers})")
             else:
-                # shapes = get_shapes(item)
-                # print("item.shape", shapes, "input_queue", input_queue.qsize(), "out_queue", output_queue.qsize())
+                shapes = get_shapes(item)
+                if num_items % 100 == 0:
+                    logger.info(
+                        f"item.shape {shapes}, input_queue, {input_queue.qsize()}, out_queue, {output_queue.qsize()}")
                 yield self.numpy_to_tensor(item)
 
         for process in self.processes:
