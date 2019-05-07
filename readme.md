@@ -54,9 +54,22 @@ rm -rf ./data/vocabulary ; allennlp make-vocab -s ./data/ allen_conf_vocab.json 
 allennlp train -f -s data/stats allen_conf.json --include-package category_prediction
 ```
 
+```bash
+allennlp train -f -s data/stats allen_conf.json --include-package category_prediction -o '{"trainer": {"cuda_device": 0}, "train_data_path":"./data/train_data.tsv"}'
+```
+
 ## Validate
 
 ```bash
 allennlp evaluate ./data/stats/model.tar.gz ./data/fake_data_test.tsv --include-package category_prediction
 ```
 
+
+
+# GCE related notes
+
+
+Fix 100% GPU utilization
+```bash
+sudo nvidia-smi -pm 1
+```

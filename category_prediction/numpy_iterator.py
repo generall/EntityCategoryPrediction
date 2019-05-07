@@ -87,6 +87,8 @@ class NumpyItearator(MultiprocessIterator):
         self.queuer = Process(target=self._queuer, args=(instances, input_queue, self.num_workers, num_epochs))
         self.queuer.start()
 
+        logger.info(f"queuer.pid: {self.queuer.pid}")
+
         # Start the tensor-dict workers.
         for i in range(self.num_workers):
             args = (input_queue, output_queue, self.iterator, shuffle, i)
@@ -110,7 +112,7 @@ class NumpyItearator(MultiprocessIterator):
                 logger.info(f"worker {item} finished ({num_finished} / {self.num_workers})")
             else:
                 shapes = get_shapes(item)
-                if num_items % 100 == 0:
+                if num_items % 20 == 0:
                     logger.info(
                         f"item.shape {shapes}, input_queue, {input_queue.qsize()}, out_queue, {output_queue.qsize()}")
                 yield self.numpy_to_tensor(item)

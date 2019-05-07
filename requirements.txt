@@ -7,3 +7,4 @@ gensim==3.7.2
 google-cloud-storage
 jupyterlab
 nltk
+google_compute_engine
