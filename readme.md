@@ -55,7 +55,7 @@ allennlp train -f -s data/stats allen_conf.json --include-package category_predi
 ```
 
 ```bash
-allennlp train -f -s data/stats allen_conf.json --include-package category_prediction -o '{"trainer": {"cuda_device": 0}, "train_data_path":"./data/train_data.tsv"}'
+allennlp train -f -s data/stats allen_conf.json --include-package category_prediction -o '{"trainer": {"cuda_device": 0}}'
 ```
 
 ## Validate

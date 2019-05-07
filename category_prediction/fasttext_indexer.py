@@ -10,7 +10,6 @@ from gensim.models.utils_any2vec import ft_ngram_hashes
 from category_prediction import load_fasttext_model
 
 
-@TokenIndexer.register("fasttext-id")
 class FasttextTokenIndexer(TokenIndexer[int]):
 
     def __init__(
@@ -112,3 +111,39 @@ class FasttextTokenIndexer(TokenIndexer[int]):
                            padding_lengths: Dict[str, int]) -> Dict[str, List[TokenType]]:
         return {key: pad_sequence_to_length(val, desired_num_tokens[key])
                 for key, val in tokens.items()}
+
+
+@TokenIndexer.register("fasttext-id")
+class StaticFasttextTokenIndexer(TokenIndexer[int]):
+
+    def count_vocab_items(self, *args, **kwargs):
+        return self.indexers[self.namespace].count_vocab_items(*args, **kwargs)
+
+    def tokens_to_indices(self, *args, **kwargs) -> Dict[str, List[TokenType]]:
+        return self.indexers[self.namespace].tokens_to_indices(*args, **kwargs)
+
+    def get_padding_token(self, *args, **kwargs) -> TokenType:
+        return self.indexers[self.namespace].get_padding_token(*args, **kwargs)
+
+    def get_padding_lengths(self, *args, **kwargs) -> Dict[str, int]:
+        return self.indexers[self.namespace].get_padding_lengths(*args, **kwargs)
+
+    def pad_token_sequence(self, *args, **kwargs) -> Dict[str, List[TokenType]]:
+        return self.indexers[self.namespace].pad_token_sequence(*args, **kwargs)
+
+    indexers = {}
+
+    def __init__(
+            self,
+            model_path,
+            namespace: str = 'tokens',
+            lowercase_tokens: bool = False,
+            model_params_path=None
+    ):
+        self.namespace = namespace
+        self.indexers[namespace] = FasttextTokenIndexer(
+            model_path=model_path,
+            namespace=namespace,
+            lowercase_tokens=lowercase_tokens,
+            model_params_path=model_params_path
+        )

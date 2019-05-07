@@ -111,10 +111,10 @@ class NumpyItearator(MultiprocessIterator):
                 num_finished += 1
                 logger.info(f"worker {item} finished ({num_finished} / {self.num_workers})")
             else:
-                shapes = get_shapes(item)
-                if num_items % 20 == 0:
-                    logger.info(
-                        f"item.shape {shapes}, input_queue, {input_queue.qsize()}, out_queue, {output_queue.qsize()}")
+                # shapes = get_shapes(item)
+                # if num_items % 5 == 0:
+                #     logger.info(
+                #         f"item.shape {shapes}, input_queue, {input_queue.qsize()}, out_queue, {output_queue.qsize()}")
                 yield self.numpy_to_tensor(item)
 
         for process in self.processes:
