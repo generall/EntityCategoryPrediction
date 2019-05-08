@@ -13,10 +13,8 @@ class FastSplitter(WordSplitter):
     This one is simpler and faster
     """
 
-    def __init__(self):
-        self.pattern = re.compile(r'([\s()<>\[\]{\};:|\'\",./\\=\-])')
-
-        self.space_re = re.compile(r'^\s*$')
+    pattern = re.compile(r'([\s()<>\[\]{\};:|\'\",./\\=\-])')
+    space_re = re.compile(r'^\s*$')
 
     def split_words(self, sentence: str) -> List[Token]:
         """
@@ -29,7 +27,7 @@ class FastSplitter(WordSplitter):
 
         res = []
         offset = 0
-        # print(sentence)
+        # print(text)
 
         pieces = re.split(self.pattern, sentence)
 

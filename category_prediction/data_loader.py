@@ -9,6 +9,8 @@ from typing import Dict, Iterable, List
 from allennlp.data import DatasetReader, TokenIndexer, Tokenizer, Instance
 from allennlp.data.fields import TextField, ListField, MultiLabelField
 
+from category_prediction.lazy_text_field import LazyTextFiled
+
 logger = get_logger()  # pylint: disable=invalid-name
 logger.setLevel(logging.INFO)
 
@@ -35,8 +37,7 @@ class ParallelLoader(DatasetReader):
         if len(files) == 1:
             yield from self.reader._read(files[0])
         else:
-            manager = Manager()
-            output_queue = manager.Queue(self.output_queue_size)
+            output_queue = Queue(self.output_queue_size)
 
             for file in files:
                 args = (output_queue, file)
@@ -52,7 +53,7 @@ class ParallelLoader(DatasetReader):
                 item = output_queue.get()
                 if isinstance(item, int):
                     num_finished += 1
-                    logger.info(f"worker {item} finished ({num_finished} / {len(files)})")
+                    logger.info(f"loader {item} finished ({num_finished} / {len(files)})")
 
                     if len(self.waiting_processes) > 0:
                         process = self.waiting_processes.pop()
@@ -100,8 +101,11 @@ class MenionsLoader(DatasetReader):
 
         sentence_fields = []
         for sentence in sentences:
-            tokenized_sentence = self.tokenizer.tokenize(sentence)
-            sent_field = TextField(tokenized_sentence, self.token_indexers)
+            sent_field = LazyTextFiled(
+                text=sentence,
+                tokenizer_name="sentences",
+                token_indexers=self.token_indexers
+            )
             sentence_fields.append(sent_field)
 
         return Instance({
@@ -128,6 +132,8 @@ class MenionsLoader(DatasetReader):
         self.tokenizer = tokenizer
         self.token_indexers = token_indexers
         self.sentence_sample = sentence_sample
+
+        LazyTextFiled.tokenizers["sentences"] = self.tokenizer
 
 
 @DatasetReader.register("vocab_mention_categories")
