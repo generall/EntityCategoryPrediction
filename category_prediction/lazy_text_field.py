@@ -27,6 +27,8 @@ class LazyTextFiled(SequenceField[Dict[str, torch.Tensor]]):
 
         self.text_field = None
 
+        self.padding_lengths = None
+
     def _get_filed(self):
         if self.text_field is None:
             if self.tokenizer_name not in self.tokenizers:
@@ -51,7 +53,9 @@ class LazyTextFiled(SequenceField[Dict[str, torch.Tensor]]):
 
     @overrides
     def get_padding_lengths(self, *args, **kwargs) -> Dict[str, int]:
-        return self._get_filed().get_padding_lengths(*args, **kwargs)
+        if self.padding_lengths is None:
+            self.padding_lengths = self._get_filed().get_padding_lengths(*args, **kwargs)
+        return self.padding_lengths
 
     @overrides
     def as_tensor(self, *args, **kwargs) -> DataArray:

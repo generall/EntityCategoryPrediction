@@ -29,10 +29,10 @@ class FastSplitter(WordSplitter):
         offset = 0
         # print(text)
 
-        pieces = re.split(self.pattern, sentence)
+        pieces = self.pattern.split(sentence)
 
         for piece in pieces:
-            if not re.match(self.space_re, piece):
+            if not self.space_re.match(piece):
                 res.append(Token(piece, offset))
             offset += len(piece)
 
