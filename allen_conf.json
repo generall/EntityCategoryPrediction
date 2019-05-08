@@ -81,7 +81,7 @@
     "shuffle": false,
     "optimizer": {
       "type": "adam",
-      "lr": 0.008
+      "lr": 0.001
     },
     "should_log_learning_rate": true,
     "num_epochs": 50,
