@@ -58,6 +58,13 @@ allennlp train -f -s data/stats allen_conf.json --include-package category_predi
 allennlp train -f -s data/stats allen_conf.json --include-package category_prediction -o '{"trainer": {"cuda_device": 0}}'
 ```
 
+### Continue training with different params
+
+```bash
+rm -rf data/stats2/  # Clear new serialization dir
+allennlp fine-tune -s data/stats2/ -c allen_conf.json -m ./data/stats/model.tar.gz --include-package category_prediction -o '{"trainer": {"cuda_device": 0}, "iterator": {"base_iterator": {"batch_size": 64}}}'
+```
+
 ## Validate
 
 ```bash

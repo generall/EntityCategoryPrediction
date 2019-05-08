@@ -42,30 +42,30 @@
         },
         "tokens": {
           "type": "embedding",
-          "embedding_dim": 10,
+          "embedding_dim": 20,
           "trainable": true
         }
       }
     },
     "encoder": {
       "type": "lstm",
-      "input_size": 310,
-      "hidden_size": 50,
-      "num_layers": 1,
+      "input_size": 320,
+      "hidden_size": 100,
+      "num_layers": 2,
       "dropout": 0.5,
       "bidirectional": true
     },
     "seq_combiner": {
       "type": "attention-combiner",
       "num_layers": 2,
-      "input_state_dim": 100,
-      "encoded_seq_dim": 100,
-      "output_dim": 50,
+      "input_state_dim": 200,
+      "encoded_seq_dim": 200,
+      "output_dim": 100,
       "dropout": 0.2,
       "attention": {
         "type": "linear",
-        "tensor_1_dim": 100,
-        "tensor_2_dim": 100
+        "tensor_1_dim": 200,
+        "tensor_2_dim": 200
       }
     }
   },
