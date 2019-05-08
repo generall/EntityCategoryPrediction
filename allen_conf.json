@@ -52,7 +52,7 @@
       "input_size": 320,
       "hidden_size": 100,
       "num_layers": 2,
-      "dropout": 0.5,
+      "dropout": 0.2,
       "bidirectional": true
     },
     "seq_combiner": {
