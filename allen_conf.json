@@ -81,14 +81,14 @@
     "shuffle": false,
     "optimizer": {
       "type": "adam",
-      "lr": 0.001
+      "lr": 0.0002
     },
     "should_log_learning_rate": true,
     "num_epochs": 50,
     "learning_rate_scheduler": {
       "type": "reduce_on_plateau",
       "factor": 0.5,
-      "patience": 5,
+      "patience": 2,
       "verbose": true
     }
   },
