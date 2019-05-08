@@ -51,7 +51,7 @@
       "type": "lstm",
       "input_size": 320,
       "hidden_size": 100,
-      "num_layers": 2,
+      "num_layers": 1,
       "dropout": 0.2,
       "bidirectional": true
     },
@@ -81,7 +81,7 @@
     "shuffle": false,
     "optimizer": {
       "type": "adam",
-      "lr": 0.0002
+      "lr": 0.008
     },
     "should_log_learning_rate": true,
     "num_epochs": 50,
