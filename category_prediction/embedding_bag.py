@@ -8,6 +8,7 @@ import torch
 from allennlp.data import Vocabulary
 from allennlp.modules import TokenEmbedder
 from gensim.models.fasttext import FastText
+from gensim.models.keyedvectors import Vocab
 from torch.nn import EmbeddingBag
 
 
@@ -85,7 +86,6 @@ class FastTextTokenEmbedder(TokenEmbedder):
         self.embedding = FastTextEmbeddingBag(model_path, trainable)
 
     def forward(self, indexes: torch.Tensor, lengths: torch.Tensor, mask: torch.Tensor):
-
         # 1D Tensor
         raw_indexes = torch.masked_select(indexes, mask.byte())
 
@@ -118,24 +118,33 @@ class GensimFasttext:
         return torch.from_numpy(vectors)
 
     def get_output_dim(self) -> int:
-        return self.model.wv.vector_size
+        return self.model.vector_size
 
 
 @TokenEmbedder.register("gensim-embedder")
 class GensimTokenEmbedder(TokenEmbedder):
 
+    def get_output_dim(self) -> int:
+        return self.embedding.get_output_dim()
+
     def __init__(
             self,
             vocab: Vocabulary,
-            model_path: str,
+            model_path: str = None,
             vocab_namespace: str = "tokens"
     ):
+        self.model_path = model_path
         self.vocab_namespace = vocab_namespace
         self.vocab = vocab
 
-        self.projection_layer = torch.nn.Linear(1, 1)  # is not used yet
+        super(GensimTokenEmbedder, self).__init__()
 
-        self.embedding = GensimFasttext(model_path=model_path)
+        # self.projection_layer = torch.nn.Linear(1, 1)  # is not used yet
+
+        if model_path is not None:
+            self.embedding = GensimFasttext(model_path=model_path)
+        else:
+            self.embedding = None
 
     def forward(self, inputs: torch.Tensor):
         original_size = inputs.size()
@@ -153,3 +162,75 @@ class GensimTokenEmbedder(TokenEmbedder):
             embedded = embedded.cuda()
 
         return embedded
+
+
+class OnDiskFastText:
+
+    def load_matrix(self, file_path):
+        st = os.stat(file_path)
+        file_size = st.st_size
+        embedding_count = (file_size - self.header_size_bites) // self.dtype_size // self.dim
+        matrix = np.memmap(file_path, dtype=self.dtype, mode='r', shape=(embedding_count, self.dim),
+                           offset=self.header_size_bites)
+        return matrix
+
+    def __init__(
+            self,
+            model_path,
+            model_params_path,
+            dim,
+            dtype="float32",
+            dtype_size=4,
+            header_size=32
+    ):
+        self.header_size_bites = header_size * dtype_size
+        self.dtype_size = dtype_size
+        self.dtype = dtype
+
+        self.dim = dim
+
+        with open(model_params_path) as fd:
+            params = json.load(fd)
+
+        self.model = gensim.models.keyedvectors.FastTextKeyedVectors(
+            vector_size=dim,
+            min_n=params['hash_params']['minn'],
+            max_n=params['hash_params']['maxn'],
+            bucket=params['hash_params']['num_buckets'],
+            compatible_hash=params['hash_params']['fb_compatible']
+        )
+
+        self.model.vectors_vocab = self.load_matrix(f'{model_path}.vectors_vocab.npy')
+        self.model.vectors = self.load_matrix(f'{model_path}.vectors.npy')
+        self.model.vectors_ngrams = self.load_matrix(f'{model_path}.vectors_ngrams.npy')
+        self.model.vocab = dict((word, Vocab(index=idx, count=1)) for word, idx in params['vocab'].items())
+
+    def __call__(self, words):
+        vectors = np.stack([self.model.get_vector(word) for word in words]).astype(np.float32)
+        return torch.from_numpy(vectors)
+
+    def get_output_dim(self) -> int:
+        return self.dim
+
+
+@TokenEmbedder.register("disk-gensim-embedder")
+class DiskGensimTokenEmbedder(GensimTokenEmbedder):
+
+    def __init__(
+            self,
+            vocab: Vocabulary,
+            model_path: str,
+            model_params_path: str,
+            dimensions: int,
+            vocab_namespace: str = "tokens",
+            trainable: bool = False  # used for compatibility
+    ):
+        super(DiskGensimTokenEmbedder, self).__init__(vocab, model_path=None, vocab_namespace=vocab_namespace)
+
+        self.model_path = model_path
+
+        self.embedding = OnDiskFastText(
+            model_path=model_path,
+            model_params_path=model_params_path,
+            dim=dimensions
+        )

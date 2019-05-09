@@ -87,7 +87,8 @@ class MenionsLoader(DatasetReader):
         with open(file_path, encoding="utf-8") as fd:
             for line in fd:
                 category_tag, left_sent, mention, right_sent = line.strip(' ').split('\t')
-                sent = f"{left_sent.strip()} {self.left_tag} {mention.strip()} {self.right_tag} {right_sent.strip()}"
+                # sent = f"{left_sent.strip()} {self.left_tag} {mention.strip()} {self.right_tag} {right_sent.strip()}"
+                sent = f"{left_sent.strip()} @@mention@@ {right_sent.strip()}"
                 yield sent, category_tag
 
     def _read(self, file_path: str) -> Iterable[Instance]:
@@ -96,8 +97,7 @@ class MenionsLoader(DatasetReader):
             sentences = random.choices(sentences, k=self.sentence_sample)
             yield self.text_to_instance(sentences, category_tag)
 
-    def text_to_instance(self, sentences: List[str], category_tag: str) -> Instance:
-        categories = self.category_mapping.get(category_tag)
+    def text_to_instance(self, sentences: List[str], category_tag: str = None) -> Instance:
 
         sentence_fields = []
         for sentence in sentences:
@@ -108,15 +108,20 @@ class MenionsLoader(DatasetReader):
             )
             sentence_fields.append(sent_field)
 
-        return Instance({
+        dt = {
             'sentences': ListField(sentence_fields),
-            'categories': MultiLabelField(categories)
-        })
+        }
+
+        if category_tag is not None:
+            categories = self.category_mapping.get(category_tag)
+            dt['categories'] = MultiLabelField(categories)
+
+        return Instance(dt)
 
     def __init__(
             self,
-            category_mapping_file: str,
             token_indexers: Dict[str, TokenIndexer],
+            category_mapping_file: str = None,
             tokenizer: Tokenizer = None,
             sentence_sample: int = 5,
             left_tag: str = '@@mb@@',
@@ -124,8 +129,10 @@ class MenionsLoader(DatasetReader):
     ):
         super().__init__(lazy=True)
         self.category_mapping_file = category_mapping_file
-        with open(category_mapping_file, encoding="utf-8") as fd:
-            self.category_mapping = json.load(fd)
+
+        if category_mapping_file is not None:
+            with open(category_mapping_file, encoding="utf-8") as fd:
+                self.category_mapping = json.load(fd)
 
         self.right_tag = right_tag
         self.left_tag = left_tag
@@ -153,5 +160,3 @@ class VocabMentionsLoader(MenionsLoader):
             'sentences': sent_field,
             'categories': MultiLabelField(categories)
         })
-
-
