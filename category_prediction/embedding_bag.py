@@ -42,10 +42,10 @@ class FastTextEmbeddingBag(EmbeddingBag):
         if self.model_path and os.path.exists(self.model_path):
             ft = load_fasttext_model(self.model_path)
 
-            self.num_vectors = ft.vectors_vocab.shape[0] + ft.vectors_ngrams.shape[0]
+            self.num_vectors = ft.vectors.shape[0] + ft.vectors_ngrams.shape[0]
 
             self.dimension = ft.vector_size
-            weights = np.concatenate([ft.vectors_vocab, ft.vectors_ngrams], axis=0)
+            weights = np.concatenate([ft.vectors, ft.vectors_ngrams], axis=0)
         else:
             raise RuntimeError("Neither model file no param file found")
 

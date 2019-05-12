@@ -70,6 +70,10 @@ class CategoryPredictor(Model):
         # shape: ((batch_size * sample_size) * seq_length * encoder_dim)
         encoder_outputs = self.encoder(embedded, flat_mask)
 
+        torch.set_printoptions(profile="full")
+        print(embedded[0][0])
+        torch.set_printoptions(profile="default")
+
         # shape: ((batch_size * sample_size), encoder_output_dim)
         final_encoder_output = get_final_encoder_states(
             encoder_outputs,

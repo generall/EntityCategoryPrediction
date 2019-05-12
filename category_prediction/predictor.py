@@ -21,48 +21,48 @@ class PersonPredictor(Predictor):
 
     def _json_to_instance(self, json_dict: JsonDict) -> Instance:
         mentions = json_dict['mentions']
-        mentions = random.choices(mentions, k=self._dataset_reader.sentence_sample)
+        mentions = random.choices(
+            mentions, k=self._dataset_reader.sentence_sample)
 
         instance = self._dataset_reader.text_to_instance(sentences=mentions)
         return instance
 
 
 if __name__ == '__main__':
-    model_path = os.path.join(DATA_DIR, 'trained_models/second_larger_model/model.tar.gz') # sys.argv[1]
+    model_path = sys.argv[1]
 
-    archive = load_archive(
-        model_path,
-        overrides=json.dumps({
-            "dataset_reader": {
-                "category_mapping_file": None,
-                "token_indexers": {
-                    "tokens": "single_id"
-                }
-            },
-            "model": {
-                "text_embedder": {
-                    "embedder_to_indexer_map": {
-                        "tokens-ngram": ["tokens"],
-                        "tokens": ["tokens"],
-                    },
-                    "token_embedders": {
-                        "tokens-ngram": {
-                            "type": "disk-gensim-embedder",
-                            "model_path": os.path.join(DATA_DIR, "shrinked_fasttext.model"),
-                            "model_params_path": os.path.join(DATA_DIR, "fasttext_embedding.model.params"),
-                            "dimensions": 300
-                        }
+    overrides = json.dumps({
+        "dataset_reader": {
+            "category_mapping_file": None,
+            "token_indexers": {
+                "tokens": "single_id"
+            }
+        },
+        "model": {
+            "text_embedder": {
+                "embedder_to_indexer_map": {
+                    "tokens-ngram": ["tokens"],
+                    "tokens": ["tokens"],
+                },
+                "token_embedders": {
+                    "tokens-ngram": {
+                        "type": "disk-gensim-embedder",
+                        "model_path": os.path.join(DATA_DIR, "fasttext_embedding.model"),
+                        "model_params_path": os.path.join(DATA_DIR, "fasttext_embedding.model.params"),
+                        "dimensions": 300
                     }
                 }
             }
-        })
-    )
+        }
+    })
+
+    archive = load_archive(model_path)
 
     predictor = Predictor.from_archive(archive, 'person-predictor')
 
     result = predictor.predict_json({
         "mentions": [
-            "@@mb@@ Albert @@me@@ is German scientist and inventor of relativity theory"
+            "lived in the top floor flat. In the popular 1970s BBC TV comedy series Porridge , the principal character, Norman Stanley Fletcher , played by @@mention@@ , hailed from Muswell Hill. In one episode he returns home briefly and is busted as a resident of Fortis Green Avenue, where the police",
         ]
     })
 
@@ -70,6 +70,7 @@ if __name__ == '__main__':
 
     result.items()
 
-    predicted_labels = dict((labels[idx], prob) for idx, prob in enumerate(result['predictions']) if prob > 0.5)
+    predicted_labels = dict((labels[idx], prob) for idx, prob in enumerate(
+        result['predictions']) if prob > 0.5)
 
     pprint(predicted_labels)
