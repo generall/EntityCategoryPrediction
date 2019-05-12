@@ -9,7 +9,7 @@ from allennlp.training.metrics import Metric
 from torch.nn import Linear
 
 from category_prediction.metrics.multilabel_f1 import MultiLabelF1Measure
-from category_prediction.seq_combiner import SeqCombiner
+from category_prediction.model.seq_combiner import SeqCombiner
 
 
 @Model.register("category_predictor")
