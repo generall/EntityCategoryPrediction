@@ -57,16 +57,13 @@
     },
     "seq_combiner": {
       "type": "attention-combiner",
-      "num_layers": 2,
+      "num_layers": 3,
       "input_state_dim": 200,
       "encoded_seq_dim": 200,
+      "feed_forward_hidden_dim": 200,
+      "hidden_dim": 200,
       "output_dim": 100,
-      "dropout": 0.2,
-      "attention": {
-        "type": "linear",
-        "tensor_1_dim": 200,
-        "tensor_2_dim": 200
-      }
+      "num_heads": 5
     }
   },
   "iterator": {

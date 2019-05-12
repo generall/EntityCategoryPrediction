@@ -60,13 +60,10 @@
       "num_layers": 2,
       "input_state_dim": 40,
       "encoded_seq_dim": 40,
+      "feed_forward_hidden_dim": 100,
+      "hidden_dim": 100,
       "output_dim": 40,
-      "dropout": 0.2,
-      "attention": {
-        "type": "linear",
-        "tensor_1_dim": 40,
-        "tensor_2_dim": 40
-      }
+      "num_heads": 2
     }
   },
   "iterator": {
