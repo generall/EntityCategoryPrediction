@@ -84,7 +84,7 @@
       "lr": 0.001
     },
     "should_log_learning_rate": true,
-    "num_epochs": 100,
+    "num_epochs": 200,
     "learning_rate_scheduler": {
       "type": "reduce_on_plateau",
       "factor": 0.5,
