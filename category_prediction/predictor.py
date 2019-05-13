@@ -56,13 +56,14 @@ if __name__ == '__main__':
         }
     })
 
-    archive = load_archive(model_path)
+    archive = load_archive(model_path, overrides=overrides)
 
     predictor = Predictor.from_archive(archive, 'person-predictor')
 
     result = predictor.predict_json({
         "mentions": [
-            "lived in the top floor flat. In the popular 1970s BBC TV comedy series Porridge , the principal character, Norman Stanley Fletcher , played by @@mention@@ , hailed from Muswell Hill. In one episode he returns home briefly and is busted as a resident of Fortis Green Avenue, where the police",
+            "@@mention@@ is a mathematician",
+            "Millennium Prize Problem was solved by @@mention@@ in 2002",
         ]
     })
 

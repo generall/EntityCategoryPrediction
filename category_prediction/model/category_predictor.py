@@ -80,7 +80,10 @@ class CategoryPredictor(Model):
         # shape: (batch_size * sample_size * encoder_output_dim)
         sentences_embedding = final_encoder_output.view(batch_size, sample_size, -1)
 
-        # shape: (batch_size, sample_size, seq_length, encoder_dim)
+        # shape: ((batch_size * sample_size) * seq_length * embedding + encoder_dim)
+        encoder_outputs = torch.cat([embedded, encoder_outputs], dim=-1)
+
+        # shape: (batch_size, sample_size, seq_length, encoder_dim + embedding)
         encoder_outputs = encoder_outputs.view(batch_size, sample_size, seq_length, -1)
 
         mentions_embeddings = self.seq_combiner(encoder_outputs, mask, sentences_embedding)

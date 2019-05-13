@@ -59,7 +59,7 @@
       "type": "attention-combiner",
       "num_layers": 2,
       "input_state_dim": 40,
-      "encoded_seq_dim": 40,
+      "encoded_seq_dim": 80,
       "feed_forward_hidden_dim": 100,
       "hidden_dim": 100,
       "output_dim": 40,
