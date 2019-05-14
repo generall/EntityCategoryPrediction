@@ -1,6 +1,6 @@
 import torch
 from allennlp.nn.util import masked_softmax, weighted_sum
-from torch.nn import Linear, MultiheadAttention, Dropout
+from torch.nn import Linear, Dropout
 
 from allennlp.common import Registrable
 
