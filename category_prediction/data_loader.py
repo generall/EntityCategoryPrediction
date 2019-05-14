@@ -2,6 +2,7 @@ import glob
 import json
 import logging
 import random
+import re
 from itertools import groupby
 from multiprocessing import Manager, Queue, Process, get_logger
 from typing import Dict, Iterable, List
@@ -88,13 +89,22 @@ class MenionsLoader(DatasetReader):
             for line in fd:
                 category_tag, left_sent, mention, right_sent = line.strip(' ').split('\t')
                 # sent = f"{left_sent.strip()} {self.left_tag} {mention.strip()} {self.right_tag} {right_sent.strip()}"
-                sent = f"{left_sent.strip()} @@mention@@ {right_sent.strip()}"
-                yield sent, category_tag
+                yield (left_sent.strip(), mention.strip(), right_sent.strip()), category_tag
+
+    def sentence_constructor(self, left_sent, mention, right_sent):
+        return f"{left_sent} {self.left_tag} {mention} {self.right_tag} {right_sent}"
+
+    def select_sentences(self, sentences):
+        return random.choices(sentences, k=self.sentence_sample)
 
     def _read(self, file_path: str) -> Iterable[Instance]:
-        for category_tag, sentences in groupby(self._read_lines(file_path), key=lambda x: x[1]):
-            sentences = [s[0] for s in sentences]
-            sentences = random.choices(sentences, k=self.sentence_sample)
+        for category_tag, rows in groupby(self._read_lines(file_path), key=lambda x: x[1]):
+            sentences = []
+            for row, _ in rows:
+                left_sent, mention, right_sent = row
+                sentences.append(self.sentence_constructor(left_sent, mention, right_sent))
+
+            sentences = self.select_sentences(sentences)
             yield self.text_to_instance(sentences, category_tag)
 
     def text_to_instance(self, sentences: List[str], category_tag: str = None) -> Instance:
@@ -141,6 +151,38 @@ class MenionsLoader(DatasetReader):
         self.sentence_sample = sentence_sample
 
         LazyTextFiled.tokenizers["sentences"] = self.tokenizer
+
+
+@DatasetReader.register("augmented_mention_categories")
+class AugmentedMenionsLoader(MenionsLoader):
+
+    skip_mention_prob = 0.5
+    shrink_to_sent_prob = 0.25
+    shrink_prob = 0.25
+    resample_prob = 0.3
+
+    sent_re = re.compile(r"[?!.]")
+
+    def sentence_constructor(self, left_sent, mention, right_sent):
+
+        if random.random() < self.skip_mention_prob:
+            mention = ""
+
+        if random.random() < self.shrink_to_sent_prob:
+            right_sent = re.split(self.sent_re, right_sent)[0]
+            left_sent = re.split(self.sent_re, left_sent)[-1]
+        elif random.random() < self.shrink_prob:
+            right_sent = right_sent[:random.randint(0, len(right_sent))]
+            left_sent = right_sent[random.randint(0, len(left_sent)):]
+
+        return f"{left_sent} {self.left_tag} {mention} {self.right_tag} {right_sent}"
+
+    def select_sentences(self, sentences):
+        if random.random() > self.resample_prob:
+            resample_size = random.randint(1, 2)
+            return random.choices(random.choices(sentences, k=resample_size), k=self.sentence_sample)
+        else:
+            return random.choices(sentences, k=self.sentence_sample)
 
 
 @DatasetReader.register("vocab_mention_categories")
