@@ -36,10 +36,10 @@ class SimpleSeqCombiner(SeqCombiner):
         :param encoded_sequences: [batch_size * sample_size * seq_length * encoded_seq_dim]
         :param encoded_sequences_mask: [batch_size * sample_size * seq_length]
         :param encoded_final_states: [batch_size * sample_size * input_state_dim]
-        :return: [batch_size * output_dim]
+        :return: [batch_size * output_dim], empty array
         """
         encoded_final_states_max, _ = encoded_final_states.max(dim=1)
-        return encoded_final_states_max
+        return encoded_final_states_max, []
 
 
 @SeqCombiner.register('attention-combiner')
@@ -57,9 +57,11 @@ class LstmAttentionCombiner(torch.nn.Module, SeqCombiner):
             output_dim: int,
             num_heads: int,
             dropout_prob: float = 0.1,
-            attention_dropout_prob: float = 0.1
+            attention_dropout_prob: float = 0.1,
+            return_weights: bool = False
     ):
         super(LstmAttentionCombiner, self).__init__()
+        self.return_weights = return_weights
         self.num_layers = num_layers
         self.output_dim = output_dim
 
@@ -149,7 +151,9 @@ class LstmAttentionCombiner(torch.nn.Module, SeqCombiner):
         :param encoded_sequences: [batch_size * sample_size * seq_length * encoded_seq_dim]
         :param encoded_sequences_mask: [batch_size * sample_size * seq_length]
         :param encoded_final_states: [batch_size * sample_size * input_state_dim]
-        :return: [batch_size * output_dim]
+        :return:
+            output vectors: [batch_size * output_dim]
+            attention weights: [batch_size x num_queries x num_heads x seq_length] x num_layers
         """
 
         batch_size, sample_size, seq_length, encoded_seq_dim = encoded_sequences.shape
@@ -161,11 +165,13 @@ class LstmAttentionCombiner(torch.nn.Module, SeqCombiner):
         encoded_final_states = encoded_final_states.view(flat_size, -1)
         encoded_sequences_mask = encoded_sequences_mask.view(flat_size, seq_length)
 
+        store_weights = []
+
         for i in range(self.num_layers):
             ff: FeedForward = self._feed_forwards[i]
             key_mapper: FeedForward = self._key_mappers[i]
             ff_norm: LayerNorm = self._feed_forward_layer_norm_layers[i]
-            att: Attention = self._attentions[i]
+            att: MultiHeadAttention = self._attentions[i]
             att_norm = self._layer_norm_layers[i]
             lstm: torch.nn.LSTM = self._lstms[i]
 
@@ -193,6 +199,9 @@ class LstmAttentionCombiner(torch.nn.Module, SeqCombiner):
                 mask=encoded_sequences_mask
             )
 
+            if self.return_weights:
+                store_weights.append(weights.cpu().numpy())
+
             # shape: (flat_size * encoded_seq_dim)
             attention_lookup = att_norm(attention_lookup.squeeze(1))
 
@@ -212,4 +221,4 @@ class LstmAttentionCombiner(torch.nn.Module, SeqCombiner):
         # shape: (batch_size * hidden_dim)
         final_vectors = lstm_hidden.transpose(0, 1).contiguous().view(batch_size, -1)
 
-        return self._output_projection(final_vectors)
+        return self._output_projection(final_vectors), store_weights

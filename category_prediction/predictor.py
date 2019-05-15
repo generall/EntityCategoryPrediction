@@ -3,6 +3,7 @@ import os
 import random
 import sys
 from pprint import pprint
+import numpy as np
 
 import category_prediction
 
@@ -19,18 +20,6 @@ from category_prediction.settings import DATA_DIR
 class PersonPredictor(Predictor):
     """Predictor wrapper for the EntityCategoryPrediction"""
 
-    def _json_to_instance(self, json_dict: JsonDict) -> Instance:
-        mentions = json_dict['mentions']
-        mentions = random.choices(
-            mentions, k=self._dataset_reader.sentence_sample)
-
-        instance = self._dataset_reader.text_to_instance(sentences=mentions)
-        return instance
-
-
-if __name__ == '__main__':
-    model_path = sys.argv[1]
-
     overrides = json.dumps({
         "dataset_reader": {
             "category_mapping_file": None,
@@ -39,6 +28,9 @@ if __name__ == '__main__':
             }
         },
         "model": {
+            "seq_combiner": {
+                "return_weights": True
+            },
             "text_embedder": {
                 "embedder_to_indexer_map": {
                     "tokens-ngram": ["tokens"],
@@ -56,22 +48,44 @@ if __name__ == '__main__':
         }
     })
 
-    archive = load_archive(model_path, overrides=overrides)
+    @classmethod
+    def select_mentions(cls, mentions, sample_size):
+
+        if len(mentions) > sample_size:
+            mentions = random.sample(mentions, sample_size)
+        elif len(mentions) < sample_size:
+            mentions += random.choices(mentions, k=sample_size - len(mentions))
+
+        return mentions
+
+    def _json_to_instance(self, json_dict: JsonDict) -> Instance:
+        mentions = json_dict['mentions']
+
+        assert len(mentions) == 5
+        instance = self._dataset_reader.text_to_instance(sentences=mentions)
+        return instance
+
+
+if __name__ == '__main__':
+    model_path = sys.argv[1]
+
+    archive = load_archive(model_path, overrides=PersonPredictor.overrides)
 
     predictor = Predictor.from_archive(archive, 'person-predictor')
 
     result = predictor.predict_json({
-        "mentions": [
-            "@@mention@@ is a mathematician",
-            "Millennium Prize Problem was solved by @@mention@@ in 2002",
-        ]
+        "mentions": PersonPredictor.select_mentions([
+            "@@mb@@ Perelman @@me@@ is Russian writer",
+            "Millennium Prize Problem was solved by @@mb@@ him @@me@@ in 1998 and then he died",
+        ], predictor._dataset_reader.sentence_sample)
     })
 
     labels = archive.model.vocab.get_index_to_token_vocabulary("labels")
-
-    result.items()
 
     predicted_labels = dict((labels[idx], prob) for idx, prob in enumerate(
         result['predictions']) if prob > 0.5)
 
     pprint(predicted_labels)
+
+    # sample size, num_layers, 1, num_heads, num_words
+    print(np.array(result['attention_weights']).shape)

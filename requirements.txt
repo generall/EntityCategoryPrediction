@@ -1,3 +1,4 @@
+flask
 torch==1.1.0
 numpy
 allennlp
@@ -8,3 +9,4 @@ google-cloud-storage
 jupyterlab
 nltk
 google_compute_engine
+spacy

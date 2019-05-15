@@ -1,5 +1,6 @@
 from typing import Dict
 
+import numpy as np
 import torch
 from allennlp.data import Vocabulary
 from allennlp.models import Model
@@ -86,12 +87,17 @@ class CategoryPredictor(Model):
         # shape: (batch_size, sample_size, seq_length, encoder_dim + embedding)
         encoder_outputs = encoder_outputs.view(batch_size, sample_size, seq_length, -1)
 
-        mentions_embeddings = self.seq_combiner(encoder_outputs, mask, sentences_embedding)
+        mentions_embeddings, attention_weights = self.seq_combiner(encoder_outputs, mask, sentences_embedding)
 
         outputs = self._output_projection_layer(mentions_embeddings)
 
+        if len(attention_weights) > 0:
+            attention_weights = np.moveaxis(np.stack(attention_weights), 0, 1)
+            attention_weights = np.split(attention_weights, len(attention_weights) / sample_size)
+
         result = {
-            'predictions': torch.sigmoid(outputs)
+            'predictions': torch.sigmoid(outputs),
+            'attention_weights': attention_weights
         }
 
         if categories is not None:
