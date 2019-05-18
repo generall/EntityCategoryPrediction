@@ -1,9 +1,12 @@
 import json
 import os
 import re
+from collections import defaultdict
+from itertools import zip_longest
 from pprint import pprint
-from typing import List
+from typing import List, Dict, Tuple
 
+import numpy as np
 import spacy
 from allennlp.models import load_archive
 from allennlp.predictors import Predictor
@@ -12,14 +15,20 @@ from category_prediction.predictor import PersonPredictor
 from category_prediction.settings import DATA_DIR
 
 
+def chunker(seq, size):
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+
 class MentionExtractor:
 
     def __init__(self, model_path, context_size=100, label='PERSON'):
         self.label = label
         self.context_size = context_size
         self.ner = spacy.load("en_core_web_sm")
-        archive = load_archive(model_path, overrides=PersonPredictor.overrides)
-        self.predictor = Predictor.from_archive(archive, 'person-predictor')
+        self.archive = load_archive(model_path, overrides=PersonPredictor.overrides)
+        self.predictor: Predictor = Predictor.from_archive(self.archive, 'person-predictor')
+
+        self.dataset_reader = self.predictor._dataset_reader
 
     def extract_mentions(self, text):
         text = text.replace("\n", ' ')
@@ -71,6 +80,75 @@ class MentionExtractor:
 
         return [group['mentions'] for group in groups]
 
+    def merge_sentence(self, mention):
+        return f"{mention['left_context']} {self.dataset_reader.left_tag} {mention['mention']}" \
+            f" {self.dataset_reader.right_tag} {mention['right_context']}"
+
+    def restore_attention(
+            self,
+            attention_mapping: Dict[int, List[np.ndarray]],
+            sentences: List[str]
+    ) -> Dict[int, List[Tuple[str, list]]]:
+        """
+
+        :param attention_mapping: sent_id => attentions [num_layers * 1 * num_heads * num_words]
+        :param sentences:
+        :return:
+        """
+        res = {}
+
+        for idx, attentions in attention_mapping.items():
+            sentence = sentences[idx]
+            tokens = self.dataset_reader.tokenizer.tokenize(sentence)
+            num_tokens = len(tokens)
+
+            # [num_tokens * num_layers * num_heads]
+            attentions = np.mean(
+                np.stack([np.transpose(np.array(attention), [1, 3, 0, 2])[0][:num_tokens] for attention in attentions]),
+                axis=0)
+            res[idx] = list(zip((token.text for token in tokens), attentions.tolist()))
+
+        return res
+
+    def predict_group(self, group):
+
+        sentences = [self.merge_sentence(mention) for mention in group]
+
+        subgroups_ids = chunker(
+            list(range(len(group))),
+            self.dataset_reader.sentence_sample
+        )
+
+        subgroups_ids = [PersonPredictor.select_mentions(x, self.dataset_reader.sentence_sample) for x in subgroups_ids]
+
+        json_instances = []
+        for subgroup_ids in subgroups_ids:
+            subgroup = [sentences[idx] for idx in subgroup_ids]
+            json_instances.append({'mentions': subgroup})
+
+        predictions = self.predictor.predict_batch_json(json_instances)
+
+        scores = None
+
+        attention_mapping = defaultdict(list)
+
+        for prediction, subgroup_ids in zip(predictions, subgroups_ids):
+            if scores is None:
+                scores = np.array(prediction['predictions'])
+            else:
+                scores += np.array(prediction['predictions'])
+
+            for mention_id, attention in zip(subgroup_ids, prediction['attention_weights']):
+                attention_mapping[mention_id].append(np.array(attention))
+
+        attention_mapping = self.restore_attention(attention_mapping, sentences)
+
+        scores = scores / len(predictions)
+        labels = self.archive.model.vocab.get_index_to_token_vocabulary("labels")
+        predicted_labels = dict((labels[idx], prob) for idx, prob in enumerate(scores) if prob > 0.2)
+
+        return predicted_labels, attention_mapping
+
 
 if __name__ == '__main__':
     me = MentionExtractor(os.path.join(DATA_DIR, 'trained_models/6th_augmented/model.tar.gz'))
@@ -100,3 +178,7 @@ Maisie says, eventually, "I just took a step away from it all".
     mention_groups = me.group_mentions(mentions)
 
     print(json.dumps(mention_groups, indent=4))
+
+    predictions, attention_mapping = me.predict_group(mention_groups[0])
+
+    print(json.dumps(predictions, indent=4))

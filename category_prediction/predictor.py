@@ -61,7 +61,7 @@ class PersonPredictor(Predictor):
     def _json_to_instance(self, json_dict: JsonDict) -> Instance:
         mentions = json_dict['mentions']
 
-        assert len(mentions) == 5
+        assert len(mentions) == self._dataset_reader.sentence_sample
         instance = self._dataset_reader.text_to_instance(sentences=mentions)
         return instance
 

@@ -32,7 +32,7 @@ class FastSplitter(WordSplitter):
         pieces = self.pattern.split(sentence)
 
         for piece in pieces:
-            if not self.space_re.match(piece):
+            if not self.space_re.match(piece) and len(piece) > 0:
                 res.append(Token(piece, offset))
             offset += len(piece)
 
