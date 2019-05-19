@@ -2,8 +2,6 @@ import json
 import os
 import re
 from collections import defaultdict
-from itertools import zip_longest
-from pprint import pprint
 from typing import List, Dict, Tuple
 
 import numpy as np
@@ -40,7 +38,8 @@ class MentionExtractor:
         for ent in doc.ents:
             if ent.label_ == self.label:
                 mention = ent.text
-                left_context = text[ent.start_char - self.context_size:ent.start_char]
+
+                left_context = text[max(ent.start_char - self.context_size, 0):ent.start_char]
                 right_context = text[ent.end_char:ent.end_char + self.context_size]
 
                 mentions.append({
@@ -55,7 +54,7 @@ class MentionExtractor:
     def get_mention_words(cls, mention) -> set:
         return set(filter(lambda x: len(x) > 2, re.split(r'\W+', mention.lower())))
 
-    def group_mentions(self, mentions: List[dict]):
+    def group_mentions(self, mentions: List[dict]) -> List[dict]:
         groups = []
 
         for mention in mentions:
@@ -78,7 +77,10 @@ class MentionExtractor:
                     'mentions': [mention]
                 })
 
-        return [group['mentions'] for group in groups]
+        for group in groups:
+            group['words'] = list(group['words'])
+
+        return groups
 
     def merge_sentence(self, mention):
         return f"{mention['left_context']} {self.dataset_reader.left_tag} {mention['mention']}" \
@@ -106,7 +108,15 @@ class MentionExtractor:
             attentions = np.mean(
                 np.stack([np.transpose(np.array(attention), [1, 3, 0, 2])[0][:num_tokens] for attention in attentions]),
                 axis=0)
-            res[idx] = list(zip((token.text for token in tokens), attentions.tolist()))
+
+            tokens_weights = []
+            for token, weights in zip((token.text for token in tokens), attentions.tolist()):
+                tokens_weights.append({
+                    'token': token,
+                    'weights': weights
+                })
+
+            res[idx] = tokens_weights
 
         return res
 
@@ -147,38 +157,34 @@ class MentionExtractor:
         labels = self.archive.model.vocab.get_index_to_token_vocabulary("labels")
         predicted_labels = dict((labels[idx], prob) for idx, prob in enumerate(scores) if prob > 0.2)
 
-        return predicted_labels, attention_mapping
+        return {
+            "labels": predicted_labels,
+            "attention": attention_mapping
+        }
+
+    def extract_and_predict(self, text):
+        mentions = self.extract_mentions(text)
+        mention_groups = self.group_mentions(mentions)
+
+        return [{
+            "mention": mention_group['words'],
+            "prediction": self.predict_group(mention_group['mentions'])
+        } for mention_group in mention_groups]
 
 
 if __name__ == '__main__':
     me = MentionExtractor(os.path.join(DATA_DIR, 'trained_models/6th_augmented/model.tar.gz'))
 
     text = """
-    
-Maisie Williams says there was a "huge period" of her life when "I'd tell myself every day that I hated myself".
-
-The Game of Thrones star says that growing up in the public eye, she felt pressure to pretend "that everything is fine" when actually she wasn't very happy.
-
-"It got to the point where I'd be in a conversation with my friends and my mind would be running and running and running and thinking about all the stupid things I'd said in my life, and all of the people that had looked at me a certain way, and it would just race and race and race," Maisie said on Fearne Cotton's Happy Place podcast.
-
-"I think we can all relate to that - telling ourselves awful things."
-
-Image caption Maisie made her acting debut in Game of Thrones ten years ago
-
-The 22-year-old says she used to find it "impossible" to ignore what people were saying about her on social media.
-
-"It got to me a lot, because there's just a constant feed in your back pocket of what people think of you.
-
-"It gets to a point where you're almost craving something negative so you can sit in a hole of sadness, and it's really bizarre the way it starts to consume you."
-
-Maisie says, eventually, "I just took a step away from it all".
+Robert Pattinson is best known for portraying Edward Cullen in the film adaptations of author Stephanie Meyer's Twilight series.
     """
 
     mentions = me.extract_mentions(text)
+
     mention_groups = me.group_mentions(mentions)
+    res = me.predict_group(mention_groups[0]['mentions'])
+
+    labels, attention_mapping = res['labels'], res['attention']
 
     print(json.dumps(mention_groups, indent=4))
-
-    predictions, attention_mapping = me.predict_group(mention_groups[0])
-
-    print(json.dumps(predictions, indent=4))
+    print(json.dumps(labels, indent=4))

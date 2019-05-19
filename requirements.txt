@@ -10,3 +10,4 @@ jupyterlab
 nltk
 google_compute_engine
 spacy
+flask-restplus
