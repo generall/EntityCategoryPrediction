@@ -63,6 +63,8 @@ import texts from "../demo_texts";
 import Attention from "@/components/Attention.vue";
 import Labels from "@/components/Labels.vue";
 
+import { page, event } from 'vue-analytics'
+
 export default {
   name: "demo",
   components: {
@@ -80,10 +82,15 @@ export default {
     };
   },
   methods: {
+    track () {
+      page('/demo')
+    },
     setText(text) {
+      event('select_example')
       this.input_text = text;
     },
     predictMentions() {
+      event('predict')
       this.isLoading = true;
       $backend
         .predictMentions(this.input_text)
@@ -100,6 +107,9 @@ export default {
           this.isLoading = false;
         });
     }
+  },
+  mounted: function(){
+    this.track()
   }
 };
 </script>

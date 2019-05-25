@@ -167,10 +167,15 @@ library.add(faTelegramPlane);
 
 import LocaleSwitcher from "../components/locale_switcher";
 
+import { page } from 'vue-analytics'
+
 export default {
   name: "home",
   components: {
     LocaleSwitcher
+  },
+  mounted: function() {
+    page('/')
   }
 };
 </script>

@@ -25,6 +25,12 @@ const i18n = new VueI18n({
   messages, // set locale messages
 })
 
+import VueAnalytics from 'vue-analytics'
+
+Vue.use(VueAnalytics, {
+  id: 'UA-56301881-2'
+})
+
 
 new Vue({
   i18n,

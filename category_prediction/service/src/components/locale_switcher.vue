@@ -12,6 +12,8 @@
 
 <script>
 import Vue from "vue";
+
+import { event } from 'vue-analytics'
 // Restore locale from cookie, if it was set
 import VueCookie from "vue-cookie";
 Vue.use(VueCookie);
@@ -57,6 +59,7 @@ export default {
   },
   methods: {
     setLocale: function(locale) {
+      event("change_locale" + locale)
       Vue.config.lang = locale;
       this.activeLocale = locale;
       this.$cookie.set("locale", locale);
