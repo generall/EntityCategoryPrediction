@@ -2,3 +2,11 @@ data/dbpedia_2014.owl
 
 
 category_prediction/service/node_modules
+category_prediction/service/dist/
+data
+
+
+__pycache__
+.directory
+.ipynb_checkpoints
+.idea
