@@ -51,8 +51,16 @@ class MentionExtractor:
         return mentions
 
     @classmethod
-    def get_mention_words(cls, mention) -> set:
-        return set(filter(lambda x: len(x) > 2, re.split(r'\W+', mention.lower())))
+    def get_mention_words(cls, mention) -> dict:
+        return dict(
+            map(
+                lambda x: (x[1], x[0]),
+                filter(
+                    lambda x: len(x[1]) > 2,
+                    enumerate(re.split(r'\W+', mention.lower()))
+                )
+            )
+        )
 
     def group_mentions(self, mentions: List[dict]) -> List[dict]:
         groups = []
@@ -65,7 +73,7 @@ class MentionExtractor:
             for group in groups:
                 group_words = group['words']
 
-                if len(mention_words.intersection(group_words)) > 0:
+                if len(set(mention_words).intersection(set(group_words))) > 0:
                     is_found = True
                     group['mentions'].append(mention)
                     group_words.update(mention_words)
@@ -78,7 +86,7 @@ class MentionExtractor:
                 })
 
         for group in groups:
-            group['words'] = list(group['words'])
+            group['words'] = list(sorted(group['words'], key=lambda word: group['words'][word]))
 
         return groups
 

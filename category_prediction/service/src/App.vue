@@ -1,10 +1,12 @@
 <template>
   <div id="app">
-    <div id="nav">
+    
+    <div id="nav" class="text-center">
+      <LocaleSwitcher :locales="['en', 'ru']" :show-full="false" class="position-absolute"> </LocaleSwitcher>
       <router-link to="/">Home</router-link> |
       <router-link to="/demo">Demo</router-link>
+
     </div>
-        
 
     <router-view/>
 
@@ -13,6 +15,18 @@
 
   </div>
 </template>
+
+<script>
+
+import LocaleSwitcher from './components/locale_switcher'
+
+export default {
+  components: {
+    LocaleSwitcher
+  }
+}
+</script>
+
 
 <style lang="scss">
 

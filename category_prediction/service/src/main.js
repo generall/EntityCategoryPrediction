@@ -15,8 +15,19 @@ import 'bootstrap'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'vue-loading-overlay/dist/vue-loading.css';
 
+import VueI18n from 'vue-i18n'
+import messages from './translation.js'
+
+Vue.use(VueI18n)
+
+const i18n = new VueI18n({
+  locale: 'ru', // set locale
+  messages, // set locale messages
+})
+
 
 new Vue({
+  i18n,
   router,
   store,
   render: h => h(App)
