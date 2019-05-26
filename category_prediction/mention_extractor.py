@@ -2,6 +2,7 @@ import json
 import os
 import re
 from collections import defaultdict
+from functools import lru_cache
 from typing import List, Dict, Tuple
 
 import numpy as np
@@ -170,6 +171,7 @@ class MentionExtractor:
             "attention": attention_mapping
         }
 
+    @lru_cache(maxsize=32)
     def extract_and_predict(self, text):
         mentions = self.extract_mentions(text)
         mention_groups = self.group_mentions(mentions)

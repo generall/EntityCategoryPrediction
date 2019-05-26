@@ -1,4 +1,4 @@
-# Category prediction model (Work in progress)
+# Category prediction model
 
 This repo contains AllenNLP model for prediction of Named Entity categories by its mentions.
 
@@ -71,7 +71,37 @@ allennlp fine-tune -s data/stats2/ -c allen_conf.json -m ./data/stats/model.tar.
 allennlp evaluate ./data/stats/model.tar.gz ./data/fake_data_test.tsv --include-package category_prediction
 ```
 
+## Sever
 
+### Debug
+
+```bash
+MODEL=./data/trained_models/6th_augmented/model.tar.gz python run_server.py
+```
+
+### Prod
+
+```bash
+gunicorn -c gunicorn_config.py wsgi:application
+```
+
+### Docker
+
+
+Build
+```bash
+cd docker
+docker build --tag mention .
+```
+
+Run with passing pyenv into container
+
+```bash
+docker run --rm --restart unless-stopped -v $HOME:$HOME -p 8000:8000 \
+        -v $HOME/.pyenv:/root/.pyenv \ 
+        -e ENV_PATH=$HOME/virtualenv/path \
+        -e APP_PATH=$HOME/project/root/path mention
+```
 
 # GCE related notes
 

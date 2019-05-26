@@ -11,3 +11,5 @@ nltk
 google_compute_engine
 spacy
 flask-restplus
+gunicorn
+python-dotenv
