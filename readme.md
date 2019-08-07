@@ -71,7 +71,7 @@ allennlp fine-tune -s data/stats2/ -c allen_conf.json -m ./data/stats/model.tar.
 allennlp evaluate ./data/stats/model.tar.gz ./data/fake_data_test.tsv --include-package category_prediction
 ```
 
-## Sever
+## Server
 
 ### Debug
 
