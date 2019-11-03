@@ -29,7 +29,7 @@
       <div class="container">
         <div class="row pt-5 pb-5">
           <div class="col-12 text-center">
-            <img src="@/assets/example.svg" class="nn-image">
+            <img src="@/assets/example.png" class="nn-image">
             <br>
           </div>
         </div>

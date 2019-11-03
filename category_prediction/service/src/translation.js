@@ -21,7 +21,7 @@ export default {
       ner_text: ` Mention classification lays between Named Entity Recognition and Entity Linking.
       It provides much more detailed information about an object than NER does.
       At the same time, it does not require storing and maintaining any knowledge base with known objects.
-      The Classifier able to work with absolutely new objects never appeared in the train set.`,
+      The Classifier is able to work with absolutely new objects never appeared in the train set.`,
       applications_title: "Possible applications",
       applications_text: `Large scale knowledge extraction from news feeds or any web source for specific mentions.
       Additional information for slot filling, chatbots and question answering systems.`,
